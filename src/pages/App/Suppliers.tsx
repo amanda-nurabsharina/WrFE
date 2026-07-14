@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
-import { Plus, Trash2, Search, Building2 } from "lucide-react";
+import { Plus, Trash2, Search, Building2, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
 
 export const Suppliers = () => {
   const [search, setSearch] = React.useState("");
@@ -10,6 +11,7 @@ export const Suppliers = () => {
   const [name, setName] = React.useState("");
   const [phone, setPhone] = React.useState("");
   const [email, setEmail] = React.useState("");
+  const [editingSupplier, setEditingSupplier] = React.useState<any | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -25,7 +27,7 @@ export const Suppliers = () => {
     mutationFn: (payload: any) => imsService.createSupplier(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to create supplier", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to create supplier");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
@@ -38,11 +40,29 @@ export const Suppliers = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateSupplier(id, payload),
+    onSuccess: (res: any) => {
+      if (res?.error) {
+        showClearErrorToast(toast, res.error, "Failed to update supplier");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["suppliers"] });
+      toast({ title: "Supplier updated successfully", variant: "default" });
+      setIsOpen(false);
+      setEditingSupplier(null);
+      // Reset form
+      setName("");
+      setPhone("");
+      setEmail("");
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => imsService.deleteSupplier(id),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to delete supplier", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to delete supplier");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
@@ -50,13 +70,26 @@ export const Suppliers = () => {
     }
   });
 
+  const handleEditClick = (sup: any) => {
+    setEditingSupplier(sup);
+    setName(sup.name);
+    setPhone(sup.phone || "");
+    setEmail(sup.email || "");
+    setIsOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({
+    const payload = {
       name,
       phone,
       email,
-    });
+    };
+    if (editingSupplier) {
+      updateMutation.mutate({ id: editingSupplier.id, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   return (
@@ -72,7 +105,13 @@ export const Suppliers = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setEditingSupplier(null);
+            setName("");
+            setPhone("");
+            setEmail("");
+            setIsOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
         >
           <Plus className="h-4 w-4" />
@@ -89,7 +128,7 @@ export const Suppliers = () => {
             placeholder="Search by name, phone, or email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
@@ -120,14 +159,20 @@ export const Suppliers = () => {
                     <td className="py-4 px-6 font-bold text-zinc-900 dark:text-white">{sup.name}</td>
                     <td className="py-4 px-6 text-zinc-650 dark:text-zinc-400">{sup.phone || "-"}</td>
                     <td className="py-4 px-6 text-zinc-500">{sup.email || "-"}</td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleEditClick(sup)}
+                        className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => {
                           if (confirm(`Delete supplier ${sup.name}?`)) {
                             deleteMutation.mutate(sup.id);
                           }
                         }}
-                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
+                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
                       >
                         <Trash2 className="h-4.5 w-4.5" />
                       </button>
@@ -145,7 +190,9 @@ export const Suppliers = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-md font-bold text-zinc-900 dark:text-white">Tambah Supplier Baru</h3>
+              <h3 className="text-md font-bold text-zinc-900 dark:text-white">
+                {editingSupplier ? "Edit Supplier" : "Tambah Supplier Baru"}
+              </h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -157,7 +204,7 @@ export const Suppliers = () => {
                   placeholder="e.g. PT. Kimia Farma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -168,7 +215,7 @@ export const Suppliers = () => {
                   placeholder="e.g. 021-1234567"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -179,7 +226,7 @@ export const Suppliers = () => {
                   placeholder="e.g. contact@supplier.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -193,10 +240,10 @@ export const Suppliers = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  Save
+                  {editingSupplier ? "Simpan Perubahan" : "Save"}
                 </button>
               </div>
             </form>

@@ -2,6 +2,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TStockTransaction, TInventoryBatch } from "../../api/ims.service";
 import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
 import { ArrowUpRight, Check, History, Layers } from "lucide-react";
 
 export const GoodsOut = () => {
@@ -58,7 +59,7 @@ export const GoodsOut = () => {
     mutationFn: (payload: any) => imsService.createOutward(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to release stock", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to release stock");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "out"] });
@@ -122,7 +123,7 @@ export const GoodsOut = () => {
                 <select
                   value={productId}
                   onChange={(e) => setProductId(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select Product</option>
                   {products.map((prod: any) => (
@@ -141,7 +142,7 @@ export const GoodsOut = () => {
                     required
                     value={qty}
                     onChange={(e) => setQty(Number(e.target.value))}
-                    className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
                 <div className="grid gap-1">
@@ -149,7 +150,7 @@ export const GoodsOut = () => {
                   <select
                     value={purpose}
                     onChange={(e) => setPurpose(e.target.value)}
-                    className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   >
                     <option value="Sales">Sales (Penjualan)</option>
                     <option value="Production">Production (Produksi)</option>
@@ -165,7 +166,7 @@ export const GoodsOut = () => {
                   placeholder="e.g. Order #10492 or Production line A"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white h-20 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black h-20 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
                 />
               </div>
 

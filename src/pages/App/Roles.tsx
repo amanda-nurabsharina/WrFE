@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
-import { Plus, Trash2, Search, Key } from "lucide-react";
+import { Plus, Trash2, Search, Key, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
 
 const MENU_OPTIONS = [
   { value: "dashboard", label: "Overview Dashboard" },
@@ -21,6 +22,7 @@ export const Roles = () => {
   const [displayName, setDisplayName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [selectedMenus, setSelectedMenus] = React.useState<string[]>([]);
+  const [editingRole, setEditingRole] = React.useState<any | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,7 +38,7 @@ export const Roles = () => {
     mutationFn: (payload: any) => imsService.createRole(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to create role", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to create role");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -50,11 +52,30 @@ export const Roles = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateRole(id, payload),
+    onSuccess: (res: any) => {
+      if (res?.error) {
+        showClearErrorToast(toast, res.error, "Failed to update role");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["roles"] });
+      toast({ title: "Role updated successfully", variant: "default" });
+      setIsOpen(false);
+      setEditingRole(null);
+      // Reset form
+      setName("");
+      setDisplayName("");
+      setDescription("");
+      setSelectedMenus([]);
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => imsService.deleteRole(id),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to delete role", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to delete role");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["roles"] });
@@ -68,14 +89,28 @@ export const Roles = () => {
     );
   };
 
+  const handleEditClick = (item: any) => {
+    setEditingRole(item);
+    setName(item.name);
+    setDisplayName(item.display_name);
+    setDescription(item.description || "");
+    setSelectedMenus(item.accessible_menus || []);
+    setIsOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({
+    const payload = {
       name,
       display_name: displayName,
       description,
       accessible_menus: selectedMenus,
-    });
+    };
+    if (editingRole) {
+      updateMutation.mutate({ id: editingRole.id, payload });
+    } else {
+      createMutation.mutate(payload);
+    }
   };
 
   const filteredRoles = roles.filter(
@@ -97,7 +132,14 @@ export const Roles = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setEditingRole(null);
+            setName("");
+            setDisplayName("");
+            setDescription("");
+            setSelectedMenus([]);
+            setIsOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
         >
           <Plus className="h-4 w-4" />
@@ -114,7 +156,7 @@ export const Roles = () => {
             placeholder="Search by role code or name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
@@ -160,20 +202,28 @@ export const Roles = () => {
                       </div>
                     </td>
                     <td className="py-4 px-6 text-center">
-                      {item.name !== "super_admin" && item.name !== "admin" ? (
+                      <div className="flex items-center justify-center gap-2">
                         <button
-                          onClick={() => {
-                            if (confirm(`Delete role ${item.display_name}?`)) {
-                              deleteMutation.mutate(item.id);
-                            }
-                          }}
-                          className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
+                          onClick={() => handleEditClick(item)}
+                          className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
                         >
-                          <Trash2 className="h-4.5 w-4.5" />
+                          <Pencil className="h-4 w-4" />
                         </button>
-                      ) : (
-                        <span className="text-[10px] text-zinc-400 italic">Locked</span>
-                      )}
+                        {item.name !== "super_admin" && item.name !== "admin" ? (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete role ${item.display_name}?`)) {
+                                deleteMutation.mutate(item.id);
+                              }
+                            }}
+                            className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
+                          >
+                            <Trash2 className="h-4.5 w-4.5" />
+                          </button>
+                        ) : (
+                          <span className="text-[10px] text-zinc-400 italic">Locked</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -188,7 +238,9 @@ export const Roles = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-md font-bold text-zinc-900 dark:text-white">Tambah Role Baru</h3>
+              <h3 className="text-md font-bold text-zinc-900 dark:text-white">
+                {editingRole ? "Edit Role" : "Tambah Role Baru"}
+              </h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -197,10 +249,11 @@ export const Roles = () => {
                 <input
                   type="text"
                   required
+                  disabled={!!editingRole}
                   placeholder="e.g. operator"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
                 />
               </div>
 
@@ -212,7 +265,7 @@ export const Roles = () => {
                   placeholder="e.g. Warehouse Operator"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -223,7 +276,7 @@ export const Roles = () => {
                   placeholder="e.g. Handles goods in and outward stock"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -255,10 +308,10 @@ export const Roles = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  Save
+                  {editingRole ? "Simpan Perubahan" : "Save"}
                 </button>
               </div>
             </form>

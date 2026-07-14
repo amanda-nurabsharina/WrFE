@@ -1,8 +1,9 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
-import { Plus, Trash2, Search, Users2, Shield } from "lucide-react";
+import { Plus, Trash2, Search, Users2, Shield, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
 
 export const Users = () => {
   const [search, setSearch] = React.useState("");
@@ -11,6 +12,7 @@ export const Users = () => {
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [role, setRole] = React.useState("employee");
+  const [editingUser, setEditingUser] = React.useState<any | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -26,7 +28,7 @@ export const Users = () => {
     mutationFn: (payload: any) => imsService.createUser(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to create user", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to create user");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -40,11 +42,30 @@ export const Users = () => {
     }
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateUser(id, payload),
+    onSuccess: (res: any) => {
+      if (res?.error) {
+        showClearErrorToast(toast, res.error, "Failed to update user");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["users"] });
+      toast({ title: "User updated successfully", variant: "default" });
+      setIsOpen(false);
+      setEditingUser(null);
+      // Reset form
+      setName("");
+      setEmail("");
+      setPassword("");
+      setRole("employee");
+    }
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id: string) => imsService.deleteUser(id),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to delete user", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to delete user");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -52,14 +73,34 @@ export const Users = () => {
     }
   });
 
+  const handleEditClick = (item: any) => {
+    setEditingUser(item);
+    setName(item.name);
+    setEmail(item.email);
+    setPassword("");
+    setRole(item.role || "employee");
+    setIsOpen(true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    createMutation.mutate({
-      name,
-      email,
-      password,
-      role,
-    });
+    if (editingUser) {
+      const payload: any = {
+        name,
+        email,
+      };
+      if (password) {
+        payload.password = password;
+      }
+      updateMutation.mutate({ id: editingUser.id, payload });
+    } else {
+      createMutation.mutate({
+        name,
+        email,
+        password,
+        role,
+      });
+    }
   };
 
   return (
@@ -75,7 +116,14 @@ export const Users = () => {
           </p>
         </div>
         <button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            setEditingUser(null);
+            setName("");
+            setEmail("");
+            setPassword("");
+            setRole("employee");
+            setIsOpen(true);
+          }}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
         >
           <Plus className="h-4 w-4" />
@@ -92,7 +140,7 @@ export const Users = () => {
             placeholder="Search by name, email, or role..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
       </div>
@@ -132,14 +180,20 @@ export const Users = () => {
                         {item.role}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-center">
+                    <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => handleEditClick(item)}
+                        className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
                       <button
                         onClick={() => {
                           if (confirm(`Delete user ${item.name}?`)) {
                             deleteMutation.mutate(item.id);
                           }
                         }}
-                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-950/20 rounded-lg transition-colors"
+                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
                       >
                         <Trash2 className="h-4.5 w-4.5" />
                       </button>
@@ -157,7 +211,9 @@ export const Users = () => {
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-md font-bold text-zinc-900 dark:text-white">Tambah User Baru</h3>
+              <h3 className="text-md font-bold text-zinc-900 dark:text-white">
+                {editingUser ? "Edit User" : "Tambah User Baru"}
+              </h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -169,7 +225,7 @@ export const Users = () => {
                   placeholder="e.g. John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -181,7 +237,7 @@ export const Users = () => {
                   placeholder="e.g. john@warehouse.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -189,12 +245,12 @@ export const Users = () => {
                 <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Password</label>
                 <input
                   type="password"
-                  required
+                  required={!editingUser}
                   minLength={8}
-                  placeholder="Minimum 8 characters"
+                  placeholder={editingUser ? "Leave blank to keep unchanged" : "Minimum 8 characters"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
@@ -203,12 +259,16 @@ export const Users = () => {
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  disabled={!!editingUser}
+                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   <option value="super_admin">Super Admin</option>
                   <option value="admin">Admin</option>
                   <option value="employee">Employee</option>
                 </select>
+                {editingUser && (
+                  <span className="text-[10px] text-zinc-400 italic">User role cannot be changed during edit</span>
+                )}
               </div>
 
               <div className="flex gap-3 justify-end pt-4">
@@ -221,10 +281,10 @@ export const Users = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={createMutation.isPending}
+                  disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  Save
+                  {editingUser ? "Simpan Perubahan" : "Save"}
                 </button>
               </div>
             </form>

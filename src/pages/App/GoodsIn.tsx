@@ -2,6 +2,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TStockTransaction } from "../../api/ims.service";
 import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
 import { ArrowDownLeft, Plus, History } from "lucide-react";
 
 export const GoodsIn = () => {
@@ -35,7 +36,7 @@ export const GoodsIn = () => {
     mutationFn: (payload: any) => imsService.createInward(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        toast({ title: "Failed to record transaction", description: res.error.message || "An error occurred", variant: "destructive" });
+        showClearErrorToast(toast, res.error, "Failed to record transaction");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "in"] });
@@ -100,7 +101,7 @@ export const GoodsIn = () => {
                   placeholder="e.g. INV-10029"
                   value={invoiceNo}
                   onChange={(e) => setInvoiceNo(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div className="grid gap-1">
@@ -108,7 +109,7 @@ export const GoodsIn = () => {
                 <select
                   value={supplierId}
                   onChange={(e) => setSupplierId(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select Supplier</option>
                   {suppliers.map((sup: any) => (
@@ -124,7 +125,7 @@ export const GoodsIn = () => {
               <select
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
-                className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
               >
                 <option value="">Select Product</option>
                 {products.map((prod: any) => (
@@ -143,7 +144,7 @@ export const GoodsIn = () => {
                   placeholder="e.g. B-PCT-003"
                   value={batchNumber}
                   onChange={(e) => setBatchNumber(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div className="grid gap-1">
@@ -153,7 +154,7 @@ export const GoodsIn = () => {
                   required
                   value={expiredDate}
                   onChange={(e) => setExpiredDate(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -168,7 +169,7 @@ export const GoodsIn = () => {
                   required
                   value={qty}
                   onChange={(e) => setQty(Number(e.target.value))}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
               <div className="grid gap-1">
@@ -179,7 +180,7 @@ export const GoodsIn = () => {
                   required
                   value={purchasePrice}
                   onChange={(e) => setPurchasePrice(Number(e.target.value))}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
             </div>
@@ -191,7 +192,7 @@ export const GoodsIn = () => {
                 <select
                   value={warehouseId}
                   onChange={(e) => setWarehouseId(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select Warehouse</option>
                   {warehouses.map((wh: any) => (
@@ -204,7 +205,7 @@ export const GoodsIn = () => {
                 <select
                   value={locationId}
                   onChange={(e) => setLocationId(e.target.value)}
-                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 >
                   <option value="">Select Rack</option>
                   {locations.map((loc: any) => (
