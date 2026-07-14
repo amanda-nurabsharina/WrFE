@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { imsService } from "../../api/ims.service";
 import { Plus, Trash2, Search, Key, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
@@ -25,6 +26,7 @@ export const Roles = () => {
   const [editingRole, setEditingRole] = React.useState<any | null>(null);
 
   const { toast } = useToast();
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
   const { data: response, isLoading } = useQuery({
@@ -125,10 +127,10 @@ export const Roles = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-            Role & Hak Akses
+            {t("roles.title")}
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Configure system roles, access permissions, and menu layout visibility.
+            {t("roles.subtitle")}
           </p>
         </div>
         <button
@@ -143,17 +145,17 @@ export const Roles = () => {
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
         >
           <Plus className="h-4 w-4" />
-          Tambah Role
+          {t("roles.addBtn")}
         </button>
       </div>
 
-      {/* Search toolbar */}
+      {/* Filter Toolbar */}
       <div className="flex gap-4 items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search by role code or name..."
+            placeholder={t("roles.placeholderSearch")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -164,22 +166,22 @@ export const Roles = () => {
       {/* Data Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Loading roles...</div>
+          <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">{t("loading")}...</div>
         ) : filteredRoles.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center gap-3">
             <Key className="h-10 w-10 text-zinc-300" />
-            <p className="text-sm font-semibold text-zinc-500">No roles found</p>
+            <p className="text-sm font-semibold text-zinc-500">{t("empty")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-zinc-50 dark:bg-zinc-955 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold">
-                  <th className="py-4 px-6">Kode Role</th>
-                  <th className="py-4 px-6">Nama Tampilan (Display)</th>
-                  <th className="py-4 px-6">Deskripsi</th>
-                  <th className="py-4 px-6">Akses Menu</th>
-                  <th className="py-4 px-6 text-center">Action</th>
+                  <th className="py-4 px-6">{t("roles.code")}</th>
+                  <th className="py-4 px-6">{t("roles.displayName")}</th>
+                  <th className="py-4 px-6">{t("roles.description")}</th>
+                  <th className="py-4 px-6">{t("roles.menuAccess")}</th>
+                  <th className="py-4 px-6 text-center">{t("action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-855 font-medium text-zinc-700 dark:text-zinc-300">
@@ -212,7 +214,7 @@ export const Roles = () => {
                         {item.name !== "super_admin" && item.name !== "admin" ? (
                           <button
                             onClick={() => {
-                              if (confirm(`Delete role ${item.display_name}?`)) {
+                              if (confirm(t("roles.confirmDelete", { name: item.display_name }))) {
                                 deleteMutation.mutate(item.id);
                               }
                             }}
@@ -239,13 +241,13 @@ export const Roles = () => {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
               <h3 className="text-md font-bold text-zinc-900 dark:text-white">
-                {editingRole ? "Edit Role" : "Tambah Role Baru"}
+                {editingRole ? t("roles.editTitle") : t("roles.addTitle")}
               </h3>
-              <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
+              <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-650 text-lg font-bold">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Kode Role (Identifier)</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.code")}</label>
                 <input
                   type="text"
                   required
@@ -258,7 +260,7 @@ export const Roles = () => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Nama Tampilan</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.displayName")}</label>
                 <input
                   type="text"
                   required
@@ -270,7 +272,7 @@ export const Roles = () => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Deskripsi</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.description")}</label>
                 <input
                   type="text"
                   placeholder="e.g. Handles goods in and outward stock"
@@ -282,7 +284,7 @@ export const Roles = () => {
 
               {/* Checkbox menu access list */}
               <div className="grid gap-2">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Akses Menu Halaman</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.menuAccess")}</label>
                 <div className="grid gap-2.5 grid-cols-2 p-3 bg-zinc-50 dark:bg-zinc-955 rounded-xl border border-zinc-200 dark:border-zinc-800">
                   {MENU_OPTIONS.map((opt) => (
                     <label key={opt.value} className="flex items-center gap-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-350 cursor-pointer">
@@ -304,14 +306,14 @@ export const Roles = () => {
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  {editingRole ? "Simpan Perubahan" : "Save"}
+                  {editingRole ? t("save") : t("save")}
                 </button>
               </div>
             </form>

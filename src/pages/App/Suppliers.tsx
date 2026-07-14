@@ -1,5 +1,6 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { imsService } from "../../api/ims.service";
 import { Plus, Trash2, Search, Building2, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
@@ -14,6 +15,7 @@ export const Suppliers = () => {
   const [editingSupplier, setEditingSupplier] = React.useState<any | null>(null);
 
   const { toast } = useToast();
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
   const { data: response, isLoading } = useQuery({
@@ -98,10 +100,10 @@ export const Suppliers = () => {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-            Master Supplier
+            {t("suppliers.title")}
           </h2>
           <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Manage distributor list, contact phone numbers, and invoicing emails.
+            {t("suppliers.subtitle")}
           </p>
         </div>
         <button
@@ -115,7 +117,7 @@ export const Suppliers = () => {
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
         >
           <Plus className="h-4 w-4" />
-          Tambah Supplier
+          {t("suppliers.addBtn")}
         </button>
       </div>
 
@@ -125,7 +127,7 @@ export const Suppliers = () => {
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search by name, phone, or email..."
+            placeholder={t("suppliers.placeholderSearch")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -136,21 +138,21 @@ export const Suppliers = () => {
       {/* Data Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
-          <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">Loading suppliers...</div>
+          <div className="p-8 text-center text-sm text-zinc-500 dark:text-zinc-400">{t("loading")}...</div>
         ) : suppliers.length === 0 ? (
           <div className="p-12 text-center flex flex-col items-center gap-3">
             <Building2 className="h-10 w-10 text-zinc-300" />
-            <p className="text-sm font-semibold text-zinc-500">No suppliers found</p>
+            <p className="text-sm font-semibold text-zinc-500">{t("empty")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
                 <tr className="bg-zinc-50 dark:bg-zinc-955 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold">
-                  <th className="py-4 px-6">Nama Supplier</th>
-                  <th className="py-4 px-6">No. Telepon</th>
-                  <th className="py-4 px-6">Email</th>
-                  <th className="py-4 px-6 text-center">Action</th>
+                  <th className="py-4 px-6">{t("suppliers.name")}</th>
+                  <th className="py-4 px-6">{t("suppliers.phone")}</th>
+                  <th className="py-4 px-6">{t("suppliers.email")}</th>
+                  <th className="py-4 px-6 text-center">{t("action")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-855 font-medium text-zinc-700 dark:text-zinc-300">
@@ -168,7 +170,7 @@ export const Suppliers = () => {
                       </button>
                       <button
                         onClick={() => {
-                          if (confirm(`Delete supplier ${sup.name}?`)) {
+                          if (confirm(t("suppliers.confirmDelete", { name: sup.name }))) {
                             deleteMutation.mutate(sup.id);
                           }
                         }}
@@ -191,13 +193,13 @@ export const Suppliers = () => {
           <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
               <h3 className="text-md font-bold text-zinc-900 dark:text-white">
-                {editingSupplier ? "Edit Supplier" : "Tambah Supplier Baru"}
+                {editingSupplier ? t("suppliers.editTitle") : t("suppliers.addTitle")}
               </h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Nama Supplier</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("suppliers.name")}</label>
                 <input
                   type="text"
                   required
@@ -209,7 +211,7 @@ export const Suppliers = () => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">No. Telepon</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("suppliers.phone")}</label>
                 <input
                   type="text"
                   placeholder="e.g. 021-1234567"
@@ -220,7 +222,7 @@ export const Suppliers = () => {
               </div>
 
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Email</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("suppliers.email")}</label>
                 <input
                   type="email"
                   placeholder="e.g. contact@supplier.com"
@@ -236,14 +238,14 @@ export const Suppliers = () => {
                   onClick={() => setIsOpen(false)}
                   className="px-4 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  {editingSupplier ? "Simpan Perubahan" : "Save"}
+                  {editingSupplier ? t("save") : t("save")}
                 </button>
               </div>
             </form>

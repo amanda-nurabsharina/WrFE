@@ -1,6 +1,7 @@
 import * as React from "react";
 import { Outlet, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
+import { useTranslation } from "react-i18next";
 import { imsService } from "../../api/ims.service";
 import {
   DropdownMenu,
@@ -38,6 +39,7 @@ export const AppLayout = () => {
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const [showNotifications, setShowNotifications] = React.useState(false);
   const navigate = useNavigate();
+  const { t } = useTranslation("common");
 
   const { data: alertsResp } = useQuery({
     queryKey: ["expiryAlerts"],
@@ -50,17 +52,17 @@ export const AppLayout = () => {
   const isAdmin = user?.role === "admin" || user?.role?.includes("admin") || user?.role?.includes("super");
 
   const menuItems = [
-    { to: "/app" as any, label: "Overview", icon: LayoutDashboard },
-    { to: "/app/products" as any, label: "Master Barang", icon: Package },
-    { to: "/app/suppliers" as any, label: "Master Supplier", icon: Building2 },
+    { to: "/app" as any, label: t("navigation.overview"), icon: LayoutDashboard },
+    { to: "/app/products" as any, label: t("navigation.products"), icon: Package },
+    { to: "/app/suppliers" as any, label: t("navigation.suppliers"), icon: Building2 },
     ...(isAdmin ? [
-      { to: "/app/users" as any, label: "User Management", icon: Users },
-      { to: "/app/roles" as any, label: "Role & Hak Akses", icon: Key }
+      { to: "/app/users" as any, label: t("navigation.users"), icon: Users },
+      { to: "/app/roles" as any, label: t("navigation.roles"), icon: Key }
     ] : []),
-    { to: "/app/inward" as any, label: "Barang Masuk", icon: ArrowDownLeft },
-    { to: "/app/outward" as any, label: "Barang Keluar", icon: ArrowUpRight },
-    { to: "/app/expired" as any, label: "Monitoring Expired", icon: Clock },
-    { to: "/app/opname" as any, label: "Stock Opname", icon: ShieldCheck },
+    { to: "/app/inward" as any, label: t("navigation.inward"), icon: ArrowDownLeft },
+    { to: "/app/outward" as any, label: t("navigation.outward"), icon: ArrowUpRight },
+    { to: "/app/expired" as any, label: t("navigation.expired"), icon: Clock },
+    { to: "/app/opname" as any, label: t("navigation.opname"), icon: ShieldCheck },
   ];
 
   return (
@@ -103,7 +105,7 @@ export const AppLayout = () => {
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-zinc-450 hover:text-rose-400 hover:bg-rose-950/20 transition-all text-xs font-bold"
           >
             <LogOut className="h-4.5 w-4.5 shrink-0" />
-            {!isSidebarCollapsed && <span>Log Out</span>}
+            {!isSidebarCollapsed && <span>{t("logout")}</span>}
           </button>
         </div>
       </aside>
@@ -114,7 +116,7 @@ export const AppLayout = () => {
           <div className="flex items-center gap-2">
             {!isSidebarCollapsed && (
               <span className="text-sm font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest hidden md:inline">
-                Dashboard Portal
+                {t("navigation.portal")}
               </span>
             )}
           </div>
