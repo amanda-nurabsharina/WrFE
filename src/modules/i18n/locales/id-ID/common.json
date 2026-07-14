@@ -1,0 +1,14 @@
+{
+  "theme": {
+    "iconLabel": "Ubah tema",
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem"
+  },
+  "lang": {
+    "en-US": "English",
+    "id-ID": "Bahasa Indonesia",
+    "iconLabel": "Ubah bahasa"
+  },
+  "login": "Masuk"
+}
