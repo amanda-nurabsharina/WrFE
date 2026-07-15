@@ -28,7 +28,8 @@ import {
   Bell,
   Users,
   Key,
-  Box
+  Box,
+  Contact
 } from "lucide-react";
 import { useAppLayout } from "./useAppLayout";
 import { useStore } from "../../store/store";
@@ -56,6 +57,7 @@ export const AppLayout = () => {
     { to: "/app" as any, label: t("navigation.overview"), icon: LayoutDashboard },
     { to: "/app/products" as any, label: t("navigation.products"), icon: Package },
     { to: "/app/suppliers" as any, label: t("navigation.suppliers"), icon: Building2 },
+    { to: "/app/customer" as any, label: t("navigation.customers"), icon: Contact },
     { to: "/app/packaging" as any, label: t("navigation.packaging"), icon: Box },
     ...(isAdmin ? [
       { to: "/app/users" as any, label: t("navigation.users"), icon: Users },

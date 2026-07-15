@@ -9,6 +9,31 @@ apiService.extend({
   },
 });
 
+export type TSupplier = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  pic?: string;
+  address?: string;
+  npwp?: string;
+  payment_term?: number;
+  created_at?: string;
+};
+
+export type TCustomer = {
+  id: string;
+  name: string;
+  phone: string;
+  email: string;
+  pic?: string;
+  address?: string;
+  npwp?: string;
+  payment_term?: number;
+  price_tier?: string; // 'distributor' | 'retail'
+  created_at?: string;
+};
+
 export type TPackagingUnit = {
   id: string;
   code: string;
@@ -150,19 +175,19 @@ class IMSService {
   }
 
   async getSuppliers(search = "") {
-    return handleAsync<any, { data: any[] }>(() =>
+    return handleAsync<any, { data: TSupplier[] }>(() =>
       apiService.get(`suppliers?search=${encodeURIComponent(search)}`)
     );
   }
 
   async createSupplier(payload: any) {
-    return handleAsync<any, { data: any }>(() =>
+    return handleAsync<any, { data: TSupplier }>(() =>
       apiService.post("suppliers", payload)
     );
   }
 
   async updateSupplier(id: string, payload: any) {
-    return handleAsync<any, { data: any }>(() =>
+    return handleAsync<any, { data: TSupplier }>(() =>
       apiService.put(`suppliers/${id}`, payload)
     );
   }
@@ -251,6 +276,31 @@ class IMSService {
   async deletePackagingUnit(id: string) {
     return handleAsync<any, any>(() =>
       apiService.delete(`packaging-units/${id}`)
+    );
+  }
+
+  // Customers CRUD
+  async getCustomers(search = "") {
+    return handleAsync<any, { data: TCustomer[] }>(() =>
+      apiService.get(`customers?search=${encodeURIComponent(search)}`)
+    );
+  }
+
+  async createCustomer(payload: any) {
+    return handleAsync<any, { data: TCustomer }>(() =>
+      apiService.post("customers", payload)
+    );
+  }
+
+  async updateCustomer(id: string, payload: any) {
+    return handleAsync<any, { data: TCustomer }>(() =>
+      apiService.put(`customers/${id}`, payload)
+    );
+  }
+
+  async deleteCustomer(id: string) {
+    return handleAsync<any, any>(() =>
+      apiService.delete(`customers/${id}`)
     );
   }
 }

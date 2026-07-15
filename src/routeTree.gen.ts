@@ -23,6 +23,7 @@ import { Route as AppOutwardRouteImport } from './routes/app/outward'
 import { Route as AppOpnameRouteImport } from './routes/app/opname'
 import { Route as AppInwardRouteImport } from './routes/app/inward'
 import { Route as AppExpiredRouteImport } from './routes/app/expired'
+import { Route as AppCustomerRouteImport } from './routes/app/customer'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -94,11 +95,17 @@ const AppExpiredRoute = AppExpiredRouteImport.update({
   path: '/expired',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCustomerRoute = AppCustomerRouteImport.update({
+  id: '/customer',
+  path: '/customer',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
@@ -114,6 +121,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
@@ -149,6 +158,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/customer'
     | '/app/expired'
     | '/app/inward'
     | '/app/opname'
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/customer'
     | '/app/expired'
     | '/app/inward'
     | '/app/opname'
@@ -180,6 +191,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/customer'
     | '/app/expired'
     | '/app/inward'
     | '/app/opname'
@@ -299,10 +311,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppExpiredRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/customer': {
+      id: '/app/customer'
+      path: '/customer'
+      fullPath: '/app/customer'
+      preLoaderRoute: typeof AppCustomerRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppCustomerRoute: typeof AppCustomerRoute
   AppExpiredRoute: typeof AppExpiredRoute
   AppInwardRoute: typeof AppInwardRoute
   AppOpnameRoute: typeof AppOpnameRoute
@@ -316,6 +336,7 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCustomerRoute: AppCustomerRoute,
   AppExpiredRoute: AppExpiredRoute,
   AppInwardRoute: AppInwardRoute,
   AppOpnameRoute: AppOpnameRoute,
