@@ -9,14 +9,33 @@ apiService.extend({
   },
 });
 
+export type TPackagingUnit = {
+  id: string;
+  code: string;
+  name: string;
+  description: string;
+  created_at?: string;
+};
+
 export type TProduct = {
   id: string;
   code: string;
   barcode: string;
   name: string;
   category_id: string;
+  sub_category?: string;
+  reg_category?: string;
+  kementan_reg_no?: string;
+  msds_reference?: string;
   unit: string;
   minimum_stock: number;
+  packaging_unit_id?: string;
+  packaging_unit?: TPackagingUnit;
+  conversion_ratio?: number;
+  purchase_price?: number;
+  price_distributor?: number;
+  price_retail?: number;
+  stock?: number;
 };
 
 export type TInventoryBatch = {
@@ -207,6 +226,31 @@ class IMSService {
   async deleteRole(id: string) {
     return handleAsync<any, any>(() =>
       apiService.delete(`admin/roles/${id}`)
+    );
+  }
+
+  // Packaging Units CRUD
+  async getPackagingUnits(search = "") {
+    return handleAsync<any, { data: TPackagingUnit[] }>(() =>
+      apiService.get(`packaging-units?search=${encodeURIComponent(search)}`)
+    );
+  }
+
+  async createPackagingUnit(payload: any) {
+    return handleAsync<any, { data: TPackagingUnit }>(() =>
+      apiService.post("packaging-units", payload)
+    );
+  }
+
+  async updatePackagingUnit(id: string, payload: any) {
+    return handleAsync<any, { data: TPackagingUnit }>(() =>
+      apiService.put(`packaging-units/${id}`, payload)
+    );
+  }
+
+  async deletePackagingUnit(id: string) {
+    return handleAsync<any, any>(() =>
+      apiService.delete(`packaging-units/${id}`)
     );
   }
 }

@@ -18,6 +18,7 @@ import { Route as AppUsersRouteImport } from './routes/app/users'
 import { Route as AppSuppliersRouteImport } from './routes/app/suppliers'
 import { Route as AppRolesRouteImport } from './routes/app/roles'
 import { Route as AppProductsRouteImport } from './routes/app/products'
+import { Route as AppPackagingRouteImport } from './routes/app/packaging'
 import { Route as AppOutwardRouteImport } from './routes/app/outward'
 import { Route as AppOpnameRouteImport } from './routes/app/opname'
 import { Route as AppInwardRouteImport } from './routes/app/inward'
@@ -68,6 +69,11 @@ const AppProductsRoute = AppProductsRouteImport.update({
   path: '/products',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPackagingRoute = AppPackagingRouteImport.update({
+  id: '/packaging',
+  path: '/packaging',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppOutwardRoute = AppOutwardRouteImport.update({
   id: '/outward',
   path: '/outward',
@@ -97,6 +103,7 @@ export interface FileRoutesByFullPath {
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
+  '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -111,6 +118,7 @@ export interface FileRoutesByTo {
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
+  '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -127,6 +135,7 @@ export interface FileRoutesById {
   '/app/inward': typeof AppInwardRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
+  '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/roles': typeof AppRolesRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -144,6 +153,7 @@ export interface FileRouteTypes {
     | '/app/inward'
     | '/app/opname'
     | '/app/outward'
+    | '/app/packaging'
     | '/app/products'
     | '/app/roles'
     | '/app/suppliers'
@@ -158,6 +168,7 @@ export interface FileRouteTypes {
     | '/app/inward'
     | '/app/opname'
     | '/app/outward'
+    | '/app/packaging'
     | '/app/products'
     | '/app/roles'
     | '/app/suppliers'
@@ -173,6 +184,7 @@ export interface FileRouteTypes {
     | '/app/inward'
     | '/app/opname'
     | '/app/outward'
+    | '/app/packaging'
     | '/app/products'
     | '/app/roles'
     | '/app/suppliers'
@@ -252,6 +264,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProductsRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/packaging': {
+      id: '/app/packaging'
+      path: '/packaging'
+      fullPath: '/app/packaging'
+      preLoaderRoute: typeof AppPackagingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/outward': {
       id: '/app/outward'
       path: '/outward'
@@ -288,6 +307,7 @@ interface AppRouteChildren {
   AppInwardRoute: typeof AppInwardRoute
   AppOpnameRoute: typeof AppOpnameRoute
   AppOutwardRoute: typeof AppOutwardRoute
+  AppPackagingRoute: typeof AppPackagingRoute
   AppProductsRoute: typeof AppProductsRoute
   AppRolesRoute: typeof AppRolesRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
@@ -300,6 +320,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppInwardRoute: AppInwardRoute,
   AppOpnameRoute: AppOpnameRoute,
   AppOutwardRoute: AppOutwardRoute,
+  AppPackagingRoute: AppPackagingRoute,
   AppProductsRoute: AppProductsRoute,
   AppRolesRoute: AppRolesRoute,
   AppSuppliersRoute: AppSuppliersRoute,
