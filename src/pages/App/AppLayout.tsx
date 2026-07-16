@@ -29,7 +29,10 @@ import {
   Users,
   Key,
   Box,
-  Contact
+  Contact,
+  FileSpreadsheet,
+  ShoppingCart,
+  History
 } from "lucide-react";
 import { useAppLayout } from "./useAppLayout";
 import { useStore } from "../../store/store";
@@ -53,21 +56,42 @@ export const AppLayout = () => {
 
   const isAdmin = user?.role === "admin" || user?.role?.includes("admin") || user?.role?.includes("super");
 
+  const { data: rolesResp } = useQuery({
+    queryKey: ["roles"],
+    queryFn: () => imsService.getRoles(),
+    enabled: !!user,
+  });
+
+  const roles = rolesResp?.data?.data || [];
+  const roleName = user?.rawRole || (user?.role as unknown as string) || "";
+  const userRoleObj = roles.find((r: any) => r.name === roleName);
+  const userMenus = userRoleObj?.accessible_menus || [];
+
+  const hasMenuAccess = (menuKey: string) => {
+    return userMenus.includes(menuKey);
+  };
+
   const menuItems = [
-    { to: "/app" as any, label: t("navigation.overview"), icon: LayoutDashboard },
-    { to: "/app/products" as any, label: t("navigation.products"), icon: Package },
-    { to: "/app/suppliers" as any, label: t("navigation.suppliers"), icon: Building2 },
-    { to: "/app/customer" as any, label: t("navigation.customers"), icon: Contact },
-    { to: "/app/packaging" as any, label: t("navigation.packaging"), icon: Box },
+    { to: "/app" as any, label: t("navigation.overview"), icon: LayoutDashboard, key: "dashboard" },
+    { to: "/app/products" as any, label: t("navigation.products"), icon: Package, key: "products" },
+    { to: "/app/suppliers" as any, label: t("navigation.suppliers"), icon: Building2, key: "suppliers" },
+    { to: "/app/customer" as any, label: t("navigation.customers"), icon: Contact, key: "customers" },
+    { to: "/app/purchase-orders" as any, label: t("navigation.purchaseOrders"), icon: FileSpreadsheet, key: "purchase-orders" },
+    { to: "/app/sales-orders" as any, label: t("navigation.salesOrders"), icon: ShoppingCart, key: "sales-orders" },
+    { to: "/app/packaging" as any, label: t("navigation.packaging"), icon: Box, key: "packaging" },
     ...(isAdmin ? [
-      { to: "/app/users" as any, label: t("navigation.users"), icon: Users },
-      { to: "/app/roles" as any, label: t("navigation.roles"), icon: Key }
+      { to: "/app/users" as any, label: t("navigation.users"), icon: Users, key: "users" },
+      { to: "/app/roles" as any, label: t("navigation.roles"), icon: Key, key: "roles" }
     ] : []),
-    { to: "/app/inward" as any, label: t("navigation.inward"), icon: ArrowDownLeft },
-    { to: "/app/outward" as any, label: t("navigation.outward"), icon: ArrowUpRight },
-    { to: "/app/expired" as any, label: t("navigation.expired"), icon: Clock },
-    { to: "/app/opname" as any, label: t("navigation.opname"), icon: ShieldCheck },
-  ];
+    { to: "/app/inward" as any, label: t("navigation.inward"), icon: ArrowDownLeft, key: "inward" },
+    { to: "/app/outward" as any, label: t("navigation.outward"), icon: ArrowUpRight, key: "outward" },
+    { to: "/app/expired" as any, label: t("navigation.expired"), icon: Clock, key: "expired" },
+    { to: "/app/opname" as any, label: t("navigation.opname"), icon: ShieldCheck, key: "opname" },
+    { to: "/app/activity-log" as any, label: t("navigation.activityLog"), icon: History, key: "activity-log" },
+  ].filter(item => {
+    if (item.key === "users" || item.key === "roles") return true;
+    return hasMenuAccess(item.key);
+  });
 
   return (
     <main className="min-h-screen bg-zinc-50 dark:bg-zinc-950 flex">

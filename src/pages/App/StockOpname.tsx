@@ -25,6 +25,7 @@ export const StockOpname = () => {
   // Compute discrepancy
   const systemQty = selectedBatch ? selectedBatch.qty : 0;
   const discrepancy = physicalQty !== "" ? (physicalQty as number) - systemQty : 0;
+  const isMatch = physicalQty !== "" && discrepancy === 0;
 
   const opnameMutation = useMutation({
     mutationFn: (payload: any) => imsService.createStockOpname(payload),
@@ -36,7 +37,12 @@ export const StockOpname = () => {
       queryClient.invalidateQueries({ queryKey: ["transactions", "adjustment"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Stock Opname adjustment approved and saved", variant: "default" });
+
+      if (isMatch) {
+        toast({ title: "Stock verified — data cocok, no discrepancy", variant: "default" });
+      } else {
+        toast({ title: "Stock Opname adjustment approved and saved", variant: "default" });
+      }
       // Reset form
       setBatchId("");
       setPhysicalQty("");
@@ -58,8 +64,30 @@ export const StockOpname = () => {
     opnameMutation.mutate({
       batch_id: batchId,
       physical_qty: Number(physicalQty),
-      description,
+      description: isMatch && !description ? "Stock verified - no discrepancy" : description,
     });
+  };
+
+  const getStatusBadge = (tx: TStockTransaction) => {
+    if (tx.transaction_type === "OPNAME_MATCH" || tx.qty === 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+          <Check className="h-3 w-3" /> Match
+        </span>
+      );
+    }
+    if (tx.qty > 0) {
+      return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400">
+          Surplus (+{tx.qty})
+        </span>
+      );
+    }
+    return (
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+        <AlertTriangle className="h-3 w-3" /> Shortage ({tx.qty})
+      </span>
+    );
   };
 
   return (
@@ -136,10 +164,10 @@ export const StockOpname = () => {
               {/* Discrepancy Preview */}
               {physicalQty !== "" && selectedBatch && (
                 <div className="animate-in fade-in duration-200">
-                  {discrepancy === 0 ? (
+                  {isMatch ? (
                     <div className="p-3 bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 rounded-xl border border-emerald-100 dark:border-emerald-900 flex items-center gap-2">
                       <Check className="h-4.5 w-4.5" />
-                      <span>Jumlah fisik cocok dengan stok sistem. Tidak butuh adjustment.</span>
+                      <span>Jumlah fisik cocok dengan stok sistem. Akan dicatat sebagai verifikasi.</span>
                     </div>
                   ) : (
                     <div className={`p-3 rounded-xl border flex items-center justify-between ${
@@ -161,21 +189,34 @@ export const StockOpname = () => {
               <div className="grid gap-1">
                 <label>Keterangan Alasan Selisih</label>
                 <textarea
-                  placeholder="e.g. Mislabeled during receipt or broken packaging"
+                  placeholder={isMatch ? "Opsional — data sudah cocok" : "e.g. Mislabeled during receipt or broken packaging"}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="px-3 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black h-16 focus:outline-none focus:ring-1 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
-              {/* Submit */}
+              {/* Submit — dynamic label based on match vs adjustment */}
               <button
                 type="submit"
-                disabled={opnameMutation.isPending || discrepancy === 0}
-                className="w-full flex items-center justify-center gap-2 mt-4 px-4 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-xs disabled:opacity-50"
+                disabled={opnameMutation.isPending}
+                className={`w-full flex items-center justify-center gap-2 mt-4 px-4 py-3 rounded-xl font-bold transition-all text-xs disabled:opacity-50 ${
+                  isMatch
+                    ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                    : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                }`}
               >
-                <ShieldCheck className="h-4.5 w-4.5" />
-                Submit for Supervisor Approval
+                {isMatch ? (
+                  <>
+                    <Check className="h-4.5 w-4.5" />
+                    Confirm Stock Match (Verifikasi Cocok)
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4.5 w-4.5" />
+                    Submit Adjustment
+                  </>
+                )}
               </button>
             </form>
           </div>
@@ -185,14 +226,14 @@ export const StockOpname = () => {
         <div className="lg:col-span-7 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm flex flex-col">
           <h3 className="text-sm font-bold text-zinc-800 dark:text-white flex items-center gap-2 mb-4 border-b border-zinc-100 dark:border-zinc-850 pb-2">
             <History className="h-5 w-5 text-indigo-500" />
-            Histori Adjustment Stock Opname
+            Histori Audit & Adjustment Stock Opname
           </h3>
 
           {isTxLoading ? (
             <div className="text-center py-8 text-sm text-zinc-500">Loading history logs...</div>
           ) : recentTransactions.length === 0 ? (
             <div className="text-center py-12 text-sm text-zinc-400 font-medium">
-              No adjustments recorded yet.
+              No audit records yet.
             </div>
           ) : (
             <div className="overflow-x-auto flex-1">
@@ -204,6 +245,7 @@ export const StockOpname = () => {
                     <th className="py-3 px-4">Barang</th>
                     <th className="py-3 px-4">Batch #</th>
                     <th className="py-3 px-4">Auditor</th>
+                    <th className="py-3 px-4">Status</th>
                     <th className="py-3 px-4 text-right">Selisih</th>
                   </tr>
                 </thead>
@@ -217,10 +259,12 @@ export const StockOpname = () => {
                       <td className="py-3 px-4">{tx.batch?.product?.name || "Deleted"}</td>
                       <td className="py-3 px-4 font-semibold text-zinc-500">{tx.batch?.batch_number}</td>
                       <td className="py-3 px-4">{tx.user?.name || "System"}</td>
+                      <td className="py-3 px-4">{getStatusBadge(tx)}</td>
                       <td className={`py-3 px-4 text-right font-bold ${
-                        tx.qty > 0 ? "text-blue-600 bg-blue-50/20 dark:bg-blue-950/20" : "text-amber-600 bg-amber-50/20 dark:bg-amber-950/20"
+                        tx.qty === 0 ? "text-emerald-600" :
+                        tx.qty > 0 ? "text-blue-600" : "text-amber-600"
                       }`}>
-                        {tx.qty > 0 ? `+${tx.qty}` : tx.qty}
+                        {tx.qty === 0 ? "—" : tx.qty > 0 ? `+${tx.qty}` : tx.qty}
                       </td>
                     </tr>
                   ))}

@@ -5,8 +5,10 @@ import { imsService, TCustomer } from "../../api/ims.service";
 import { Plus, Trash2, Search, Contact, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
+import { usePermission } from "../../hooks/usePermission";
 
 export const Customer = () => {
+  const { hasPermission } = usePermission();
   const [search, setSearch] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -37,7 +39,7 @@ export const Customer = () => {
       toast({
         title: t("success"),
         description: "Customer created successfully",
-        variant: "success",
+        variant: "default",
       });
       setIsOpen(false);
       resetForm();
@@ -55,7 +57,7 @@ export const Customer = () => {
       toast({
         title: t("success"),
         description: "Customer updated successfully",
-        variant: "success",
+        variant: "default",
       });
       setIsOpen(false);
       resetForm();
@@ -72,7 +74,7 @@ export const Customer = () => {
       toast({
         title: t("success"),
         description: "Customer deleted successfully",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (err: any) => {
@@ -137,16 +139,18 @@ export const Customer = () => {
             {t("customers.subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setIsOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
-        >
-          <Plus className="h-4 w-4" />
-          {t("customers.addBtn")}
-        </button>
+        {hasPermission("customers", "create") && (
+          <button
+            onClick={() => {
+              resetForm();
+              setIsOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
+          >
+            <Plus className="h-4 w-4" />
+            {t("customers.addBtn")}
+          </button>
+        )}
       </div>
 
       {/* Filter Toolbar */}
@@ -209,22 +213,29 @@ export const Customer = () => {
                     <td className="py-4 px-6 text-zinc-500 font-mono">{cust.npwp || "-"}</td>
                     <td className="py-4 px-6 text-zinc-500 max-w-[200px] truncate">{cust.address || "-"}</td>
                     <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(cust)}
-                        className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(t("customers.confirmDelete", { name: cust.name }))) {
-                            deleteMutation.mutate(cust.id);
-                          }
-                        }}
-                        className="text-rose-500 hover:text-rose-600 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-955/20 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {hasPermission("customers", "edit") && (
+                        <button
+                          onClick={() => handleEditClick(cust)}
+                          className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {hasPermission("customers", "delete") && (
+                        <button
+                          onClick={() => {
+                            if (confirm(t("customers.confirmDelete", { name: cust.name }))) {
+                              deleteMutation.mutate(cust.id);
+                            }
+                          }}
+                          className="text-rose-500 hover:text-rose-600 p-1.5 hover:bg-rose-50 dark:hover:bg-rose-955/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                      {!hasPermission("customers", "edit") && !hasPermission("customers", "delete") && (
+                        <span className="text-[10px] text-zinc-400 italic">No Actions</span>
+                      )}
                     </td>
                   </tr>
                 ))}

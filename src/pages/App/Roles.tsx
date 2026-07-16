@@ -2,7 +2,7 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { imsService } from "../../api/ims.service";
-import { Plus, Trash2, Search, Key, Pencil } from "lucide-react";
+import { Plus, Trash2, Search, Key, Pencil, ChevronDown, ChevronRight } from "lucide-react";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
 
@@ -10,11 +10,27 @@ const MENU_OPTIONS = [
   { value: "dashboard", label: "Overview Dashboard" },
   { value: "products", label: "Master Barang" },
   { value: "suppliers", label: "Master Supplier" },
+  { value: "customers", label: "Master Customer" },
+  { value: "packaging", label: "Packaging Units" },
   { value: "inward", label: "Barang Masuk" },
   { value: "outward", label: "Barang Keluar" },
   { value: "expired", label: "Monitoring Expired" },
   { value: "opname", label: "Stock Opname" },
+  { value: "purchase-orders", label: "Purchase Orders (PO)" },
+  { value: "sales-orders", label: "Sales Orders (SO)" },
+  { value: "approver", label: "Approver (PO/SO/B3)" },
+  { value: "activity-log", label: "Log Activity (Audit)" },
 ];
+
+const ACTION_OPTIONS = [
+  { value: "view", label: "View", color: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300" },
+  { value: "create", label: "Create", color: "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400" },
+  { value: "edit", label: "Edit", color: "bg-blue-100 text-blue-700 dark:bg-blue-950/30 dark:text-blue-400" },
+  { value: "delete", label: "Delete", color: "bg-rose-100 text-rose-700 dark:bg-rose-950/30 dark:text-rose-400" },
+  { value: "approve", label: "Approve", color: "bg-purple-100 text-purple-700 dark:bg-purple-950/30 dark:text-purple-400" },
+];
+
+type PermissionMap = Record<string, string[]>;
 
 export const Roles = () => {
   const [search, setSearch] = React.useState("");
@@ -23,6 +39,8 @@ export const Roles = () => {
   const [displayName, setDisplayName] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [selectedMenus, setSelectedMenus] = React.useState<string[]>([]);
+  const [permissions, setPermissions] = React.useState<PermissionMap>({});
+  const [expandedMenus, setExpandedMenus] = React.useState<string[]>([]);
   const [editingRole, setEditingRole] = React.useState<any | null>(null);
 
   const { toast } = useToast();
@@ -46,11 +64,7 @@ export const Roles = () => {
       queryClient.invalidateQueries({ queryKey: ["roles"] });
       toast({ title: "Role created successfully", variant: "default" });
       setIsOpen(false);
-      // Reset form
-      setName("");
-      setDisplayName("");
-      setDescription("");
-      setSelectedMenus([]);
+      resetForm();
     }
   });
 
@@ -65,11 +79,7 @@ export const Roles = () => {
       toast({ title: "Role updated successfully", variant: "default" });
       setIsOpen(false);
       setEditingRole(null);
-      // Reset form
-      setName("");
-      setDisplayName("");
-      setDescription("");
-      setSelectedMenus([]);
+      resetForm();
     }
   });
 
@@ -85,9 +95,55 @@ export const Roles = () => {
     }
   });
 
-  const handleCheckboxChange = (value: string) => {
-    setSelectedMenus((prev) =>
-      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+  const resetForm = () => {
+    setName("");
+    setDisplayName("");
+    setDescription("");
+    setSelectedMenus([]);
+    setPermissions({});
+    setExpandedMenus([]);
+    setEditingRole(null);
+  };
+
+  const handleMenuToggle = (menuValue: string) => {
+    setSelectedMenus((prev) => {
+      if (prev.includes(menuValue)) {
+        // Also remove from permissions
+        setPermissions((p) => {
+          const next = { ...p };
+          delete next[menuValue];
+          return next;
+        });
+        return prev.filter((m) => m !== menuValue);
+      } else {
+        // Auto-grant "view" when enabling a menu
+        setPermissions((p) => ({
+          ...p,
+          [menuValue]: p[menuValue]?.length ? p[menuValue] : ["view"],
+        }));
+        return [...prev, menuValue];
+      }
+    });
+  };
+
+  const handleActionToggle = (menuValue: string, action: string) => {
+    setPermissions((prev) => {
+      const current = prev[menuValue] || [];
+      let next: string[];
+      if (current.includes(action)) {
+        next = current.filter((a) => a !== action);
+        // If no actions left, keep at least "view"
+        if (next.length === 0) next = ["view"];
+      } else {
+        next = [...current, action];
+      }
+      return { ...prev, [menuValue]: next };
+    });
+  };
+
+  const toggleExpand = (menuValue: string) => {
+    setExpandedMenus((prev) =>
+      prev.includes(menuValue) ? prev.filter((m) => m !== menuValue) : [...prev, menuValue]
     );
   };
 
@@ -97,6 +153,8 @@ export const Roles = () => {
     setDisplayName(item.display_name);
     setDescription(item.description || "");
     setSelectedMenus(item.accessible_menus || []);
+    setPermissions(item.permissions || {});
+    setExpandedMenus([]);
     setIsOpen(true);
   };
 
@@ -107,6 +165,7 @@ export const Roles = () => {
       display_name: displayName,
       description,
       accessible_menus: selectedMenus,
+      permissions,
     };
     if (editingRole) {
       updateMutation.mutate({ id: editingRole.id, payload });
@@ -135,11 +194,7 @@ export const Roles = () => {
         </div>
         <button
           onClick={() => {
-            setEditingRole(null);
-            setName("");
-            setDisplayName("");
-            setDescription("");
-            setSelectedMenus([]);
+            resetForm();
             setIsOpen(true);
           }}
           className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
@@ -235,17 +290,17 @@ export const Roles = () => {
         )}
       </div>
 
-      {/* Add Role Modal Overlay */}
+      {/* Add/Edit Role Modal Overlay */}
       {isOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-md rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
-            <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-lg rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150 max-h-[90vh] flex flex-col">
+            <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between shrink-0">
               <h3 className="text-md font-bold text-zinc-900 dark:text-white">
                 {editingRole ? t("roles.editTitle") : t("roles.addTitle")}
               </h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-650 text-lg font-bold">&times;</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
               <div className="grid gap-1">
                 <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.code")}</label>
                 <input
@@ -282,21 +337,72 @@ export const Roles = () => {
                 />
               </div>
 
-              {/* Checkbox menu access list */}
-              <div className="grid gap-2">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("roles.menuAccess")}</label>
-                <div className="grid gap-2.5 grid-cols-2 p-3 bg-zinc-50 dark:bg-zinc-955 rounded-xl border border-zinc-200 dark:border-zinc-800">
-                  {MENU_OPTIONS.map((opt) => (
-                    <label key={opt.value} className="flex items-center gap-2 text-[11px] font-medium text-zinc-700 dark:text-zinc-350 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={selectedMenus.includes(opt.value)}
-                        onChange={() => handleCheckboxChange(opt.value)}
-                        className="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 border-zinc-300"
-                      />
-                      {opt.label}
-                    </label>
-                  ))}
+              {/* Granular Permissions — expandable per menu */}
+              <div className="grid gap-1">
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">
+                  Menu Access & Permissions
+                </label>
+                <div className="bg-zinc-50 dark:bg-zinc-955 rounded-xl border border-zinc-200 dark:border-zinc-800 divide-y divide-zinc-200 dark:divide-zinc-800">
+                  {MENU_OPTIONS.map((opt) => {
+                    const isEnabled = selectedMenus.includes(opt.value);
+                    const isExpanded = expandedMenus.includes(opt.value);
+                    const menuPerms = permissions[opt.value] || [];
+
+                    return (
+                      <div key={opt.value}>
+                        {/* Menu row */}
+                        <div className="flex items-center gap-2 px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={isEnabled}
+                            onChange={() => handleMenuToggle(opt.value)}
+                            className="rounded text-indigo-600 focus:ring-indigo-500 h-3.5 w-3.5 border-zinc-300"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => isEnabled && toggleExpand(opt.value)}
+                            className={`flex-1 flex items-center justify-between text-[11px] font-medium ${
+                              isEnabled ? "text-zinc-800 dark:text-zinc-200 cursor-pointer" : "text-zinc-400 cursor-default"
+                            }`}
+                          >
+                            <span>{opt.label}</span>
+                            {isEnabled && (
+                              <div className="flex items-center gap-1.5">
+                                <div className="flex gap-0.5">
+                                  {menuPerms.map((a) => {
+                                    const actionDef = ACTION_OPTIONS.find((ao) => ao.value === a);
+                                    return actionDef ? (
+                                      <span key={a} className={`px-1.5 py-0.5 rounded text-[8px] font-bold ${actionDef.color}`}>
+                                        {actionDef.label}
+                                      </span>
+                                    ) : null;
+                                  })}
+                                </div>
+                                {isExpanded ? <ChevronDown className="h-3 w-3 text-zinc-400" /> : <ChevronRight className="h-3 w-3 text-zinc-400" />}
+                              </div>
+                            )}
+                          </button>
+                        </div>
+
+                        {/* Expanded action checkboxes */}
+                        {isEnabled && isExpanded && (
+                          <div className="px-8 pb-2.5 flex flex-wrap gap-3 animate-in fade-in duration-150">
+                            {ACTION_OPTIONS.map((action) => (
+                              <label key={action.value} className="flex items-center gap-1.5 text-[10px] font-semibold text-zinc-600 dark:text-zinc-400 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={menuPerms.includes(action.value)}
+                                  onChange={() => handleActionToggle(opt.value, action.value)}
+                                  className="rounded text-indigo-600 focus:ring-indigo-500 h-3 w-3 border-zinc-300"
+                                />
+                                <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${action.color}`}>{action.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -313,7 +419,7 @@ export const Roles = () => {
                   disabled={createMutation.isPending || updateMutation.isPending}
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition-all"
                 >
-                  {editingRole ? t("save") : t("save")}
+                  {t("save")}
                 </button>
               </div>
             </form>

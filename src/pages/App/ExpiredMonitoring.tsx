@@ -1,26 +1,65 @@
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TInventoryBatch } from "../../api/ims.service";
-import { Clock, Search, ShieldAlert, AlertTriangle, ShieldCheck } from "lucide-react";
+import { Search, ShieldAlert, AlertTriangle, ShieldCheck, Check } from "lucide-react";
+import { useToast } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
+import { useStore } from "../../store/store";
 
 export const ExpiredMonitoring = () => {
   const [search, setSearch] = React.useState("");
   const [expiryFilter, setExpiryFilter] = React.useState("all");
 
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const user = useStore((state) => state.user);
+  const { data: rolesResp } = useQuery({ queryKey: ["roles"], queryFn: () => imsService.getRoles() });
+  const roles = rolesResp?.data?.data || [];
+  const roleName = user?.rawRole || (user?.role as unknown as string) || "";
+  const userRoleObj = roles.find((r: any) => r.name === roleName);
+  const userMenus = userRoleObj?.accessible_menus || [];
+  const isSuperAdmin = roleName === "super_admin" || roleName === "super admin";
+  const isApprover = isSuperAdmin || roleName === "approver" || userMenus.includes("approver") || roleName === "admin";
+
   const { data: response, isLoading } = useQuery({
     queryKey: ["batches", search, expiryFilter],
     queryFn: () => imsService.getBatches({
       search,
-      expiry_days: expiryFilter !== "all" ? expiryFilter : undefined
+      expiry_days: (expiryFilter !== "all" && expiryFilter !== "quarantine") ? expiryFilter : undefined,
+      status: expiryFilter === "quarantine" ? "quarantine" : "active"
     }),
+  });
+
+  const approveMutation = useMutation({
+    mutationFn: (id: string) => imsService.approveB3Inward(id),
+    onSuccess: (res: any) => {
+      if (res?.error) {
+        showClearErrorToast(res.error, toast, "Failed to approve batch");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["batches"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      toast({ title: "B3 quarantined batch approved and added to active stock", variant: "default" });
+    },
+    onError: (err: any) => {
+      showClearErrorToast(err, toast, "Failed to approve batch");
+    }
   });
 
   const batches = response?.data?.data || [];
 
-  const getExpiryStatus = (expDateStr: string) => {
+  const getExpiryStatus = (expDateStr: string, isQuarantine: boolean) => {
+    if (isQuarantine) {
+      return {
+        label: "Quarantined (B3)",
+        days: 0,
+        color: "bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-900",
+        icon: AlertTriangle,
+      };
+    }
+
     const expDate = new Date(expDateStr);
     const today = new Date();
-    // Reset hours
     today.setHours(0, 0, 0, 0);
     expDate.setHours(0, 0, 0, 0);
 
@@ -45,12 +84,12 @@ export const ExpiredMonitoring = () => {
       return {
         label: "Hampir Expired (<90d)",
         days: diffDays,
-        color: "bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-900",
-        icon: Clock,
+        color: "bg-yellow-50 dark:bg-yellow-950/20 text-yellow-700 dark:text-yellow-300 border-yellow-205 dark:border-yellow-900",
+        icon: AlertTriangle,
       };
     } else {
       return {
-        label: "Aman (>90d)",
+        label: "Safe (>90d)",
         days: diffDays,
         color: "bg-emerald-50 dark:bg-emerald-950/20 text-emerald-700 dark:text-emerald-300 border-emerald-200 dark:border-emerald-900",
         icon: ShieldCheck,
@@ -58,58 +97,68 @@ export const ExpiredMonitoring = () => {
     }
   };
 
-  const filterTabs = [
-    { value: "all", label: "Semua Batch" },
-    { value: "expired", label: "Sudah Expired" },
-    { value: "30", label: "Expired <30 Hari" },
-    { value: "90", label: "Expired <90 Hari" },
-  ];
-
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
-          Monitoring Expired
-        </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Perform real-time tracking of active batches and identify risk profiles using warning alerts.
-        </p>
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+            Monitoring Expired & Quarantine
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Pantau tanggal kadaluarsa produk pertanian dan verifikasi stock karantina B3.
+          </p>
+        </div>
       </div>
 
-      {/* Toolbar & Filters */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">
-        {/* Search */}
-        <div className="relative w-full max-w-sm">
+      {/* Filter Tabs & Toolbar */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">
+        <div className="flex bg-zinc-100 dark:bg-zinc-950 p-1.5 rounded-xl border border-zinc-200/50 dark:border-zinc-800/50 self-start">
+          <button
+            onClick={() => setExpiryFilter("all")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+              expiryFilter === "all"
+                ? "bg-white dark:bg-zinc-850 text-zinc-900 dark:text-white shadow-sm"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            }`}
+          >
+            All Active Batches
+          </button>
+          <button
+            onClick={() => setExpiryFilter("30")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+              expiryFilter === "30"
+                ? "bg-white dark:bg-zinc-850 text-zinc-900 dark:text-white shadow-sm"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            }`}
+          >
+            {"Near Expired (<30d)"}
+          </button>
+          <button
+            onClick={() => setExpiryFilter("quarantine")}
+            className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
+              expiryFilter === "quarantine"
+                ? "bg-white dark:bg-zinc-850 text-zinc-900 dark:text-white shadow-sm"
+                : "text-zinc-500 hover:text-zinc-900 dark:hover:text-white"
+            }`}
+          >
+            Quarantine (B3)
+          </button>
+        </div>
+
+        <div className="relative w-full md:max-w-xs">
           <Search className="absolute left-3 top-3 h-4 w-4 text-zinc-400" />
           <input
             type="text"
-            placeholder="Search by batch number, code, name..."
+            placeholder="Cari barang atau batch..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-xs bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+            className="pl-10 pr-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-xl w-full text-sm bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-wrap gap-2 text-xs">
-          {filterTabs.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setExpiryFilter(tab.value)}
-              className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-                expiryFilter === tab.value
-                  ? "bg-indigo-600 border-indigo-600 text-white"
-                  : "bg-zinc-50 border-zinc-200 text-zinc-650 hover:bg-zinc-100 dark:bg-zinc-950 dark:border-zinc-800 dark:text-zinc-400"
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
         </div>
       </div>
 
-      {/* Table grid */}
+      {/* Grid List / Table */}
       <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
         {isLoading ? (
           <div className="p-8 text-center text-sm text-zinc-500">Loading batches...</div>
@@ -121,19 +170,22 @@ export const ExpiredMonitoring = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="bg-zinc-50 dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold">
+                <tr className="bg-zinc-50 dark:bg-zinc-955 border-b border-zinc-200 dark:border-zinc-800 text-zinc-500 uppercase tracking-wider font-semibold">
                   <th className="py-4 px-6">Barang</th>
                   <th className="py-4 px-6">Batch Number</th>
                   <th className="py-4 px-6">Gudang</th>
                   <th className="py-4 px-6">Lokasi Rak</th>
                   <th className="py-4 px-6">Quantity</th>
                   <th className="py-4 px-6">Expiry Date</th>
-                  <th className="py-4 px-6">Status Expired</th>
+                  <th className="py-4 px-6">Status</th>
+                  {expiryFilter === "quarantine" && isApprover && (
+                    <th className="py-4 px-6 text-center">Action</th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-850 font-medium text-zinc-700 dark:text-zinc-300">
                 {batches.map((batch: TInventoryBatch) => {
-                  const status = getExpiryStatus(batch.expired_date);
+                  const status = getExpiryStatus(batch.expired_date, batch.status === "quarantine");
                   return (
                     <tr key={batch.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
                       <td className="py-4 px-6">
@@ -152,9 +204,24 @@ export const ExpiredMonitoring = () => {
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-1 rounded-full border text-[10px] uppercase font-bold inline-flex items-center gap-1.5 ${status.color}`}>
                           <status.icon className="h-3.5 w-3.5" />
-                          {status.label} ({status.days <= 0 ? "Expired" : `${status.days} hari lagi`})
+                          {status.label} {batch.status !== "quarantine" && (status.days <= 0 ? "" : `(${status.days} hari lagi)`)}
                         </span>
                       </td>
+                      {expiryFilter === "quarantine" && isApprover && (
+                        <td className="py-4 px-6 text-center">
+                          <button
+                            onClick={() => {
+                              if (confirm("Approve B3 batch and release to active stock?")) {
+                                approveMutation.mutate(batch.id);
+                              }
+                            }}
+                            className="flex items-center justify-center gap-1 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold tracking-wide transition-all"
+                          >
+                            <Check className="h-3.5 w-3.5" />
+                            Approve Stock
+                          </button>
+                        </td>
+                      )}
                     </tr>
                   );
                 })}

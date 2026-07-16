@@ -34,6 +34,48 @@ export type TCustomer = {
   created_at?: string;
 };
 
+export type TPurchaseOrderItem = {
+  id: string;
+  po_id: string;
+  product_id: string;
+  product?: TProduct;
+  qty: number;
+  received_qty: number;
+  price: number;
+};
+
+export type TPurchaseOrder = {
+  id: string;
+  po_number: string;
+  supplier_id: string;
+  supplier?: TSupplier;
+  order_date: string;
+  status: string; // draft, approved, partially_received, completed
+  items?: TPurchaseOrderItem[];
+  created_at?: string;
+};
+
+export type TSalesOrderItem = {
+  id: string;
+  so_id: string;
+  product_id: string;
+  product?: TProduct;
+  qty: number;
+  shipped_qty: number;
+  price: number;
+};
+
+export type TSalesOrder = {
+  id: string;
+  so_number: string;
+  customer_id: string;
+  customer?: TCustomer;
+  order_date: string;
+  status: string; // draft, pending_b3_approval, approved, partially_shipped, shipped
+  items?: TSalesOrderItem[];
+  created_at?: string;
+};
+
 export type TPackagingUnit = {
   id: string;
   code: string;
@@ -87,6 +129,7 @@ export type TStockTransaction = {
   qty: number;
   reference_no: string;
   user?: { name: string; email: string };
+  selling_price?: number;
   created_at: string;
 };
 
@@ -198,6 +241,7 @@ class IMSService {
     );
   }
 
+
   async getExpiryAlerts() {
     return handleAsync<any, { data: TInventoryBatch[] }>(() =>
       apiService.get("inventory/expiry-alerts")
@@ -301,6 +345,64 @@ class IMSService {
   async deleteCustomer(id: string) {
     return handleAsync<any, any>(() =>
       apiService.delete(`customers/${id}`)
+    );
+  }
+
+  // Purchase Orders CRUD
+  async getPurchaseOrders(search = "") {
+    return handleAsync<any, { data: TPurchaseOrder[] }>(() =>
+      apiService.get(`orders/po?search=${encodeURIComponent(search)}`)
+    );
+  }
+
+  async createPurchaseOrder(payload: any) {
+    return handleAsync<any, { data: TPurchaseOrder }>(() =>
+      apiService.post("orders/po", payload)
+    );
+  }
+
+  async approvePurchaseOrder(id: string) {
+    return handleAsync<any, { data: TPurchaseOrder }>(() =>
+      apiService.put(`orders/po/${id}/approve`, {})
+    );
+  }
+
+  // Sales Orders CRUD
+  async getSalesOrders(search = "") {
+    return handleAsync<any, { data: TSalesOrder[] }>(() =>
+      apiService.get(`orders/so?search=${encodeURIComponent(search)}`)
+    );
+  }
+
+  async createSalesOrder(payload: any) {
+    return handleAsync<any, { data: TSalesOrder }>(() =>
+      apiService.post("orders/so", payload)
+    );
+  }
+
+  async approveSalesOrder(id: string) {
+    return handleAsync<any, { data: TSalesOrder }>(() =>
+      apiService.put(`orders/so/${id}/approve`, {})
+    );
+  }
+
+  // B3 Inward Batch Approval
+  async approveB3Inward(id: string) {
+    return handleAsync<any, { data: TInventoryBatch }>(() =>
+      apiService.put(`inventory/batches/${id}/approve`, {})
+    );
+  }
+
+  // Activity Logs (Audit Trail)
+  async getActivityLogs(params: { search?: string; module?: string; action?: string; page?: number; limit?: number } = {}) {
+    const qs = new URLSearchParams();
+    if (params.search) qs.set("search", params.search);
+    if (params.module) qs.set("module", params.module);
+    if (params.action) qs.set("action", params.action);
+    if (params.page) qs.set("page", String(params.page));
+    if (params.limit) qs.set("limit", String(params.limit));
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`activity-logs?${qs.toString()}`)
     );
   }
 }

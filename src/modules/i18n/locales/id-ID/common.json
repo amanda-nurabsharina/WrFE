@@ -42,6 +42,8 @@
     "products": "Master Barang",
     "suppliers": "Master Supplier",
     "customers": "Master Customer",
+    "purchaseOrders": "Purchase Order (PO)",
+    "salesOrders": "Sales Order (SO)",
     "packaging": "Master Kemasan",
     "users": "Manajemen User",
     "roles": "Role & Hak Akses",
@@ -49,6 +51,7 @@
     "outward": "Barang Keluar",
     "expired": "Monitoring Expired",
     "opname": "Stock Opname",
+    "activityLog": "Log Aktivitas",
     "portal": "Portal Dashboard"
   },
   "dashboard": {

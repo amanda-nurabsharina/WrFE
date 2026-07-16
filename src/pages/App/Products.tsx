@@ -2,11 +2,13 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { imsService, TProduct } from "../../api/ims.service";
-import { Plus, Trash2, Search, Package2, Pencil, ShieldAlert } from "lucide-react";
+import { Plus, Trash2, Search, Package2, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
+import { usePermission } from "../../hooks/usePermission";
 
 export const Products = () => {
+  const { hasPermission } = usePermission();
   const [search, setSearch] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [code, setCode] = React.useState("");
@@ -58,7 +60,7 @@ export const Products = () => {
     mutationFn: (payload: any) => imsService.createProduct(payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "Product created successfully", variant: "success" });
+      toast({ title: "Product created successfully", variant: "default" });
       setIsOpen(false);
       resetForm();
     },
@@ -71,7 +73,7 @@ export const Products = () => {
     mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateProduct(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "Product updated successfully", variant: "success" });
+      toast({ title: "Product updated successfully", variant: "default" });
       setIsOpen(false);
       resetForm();
     },
@@ -84,7 +86,7 @@ export const Products = () => {
     mutationFn: (id: string) => imsService.deleteProduct(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
-      toast({ title: "Product deleted successfully", variant: "success" });
+      toast({ title: "Product deleted successfully", variant: "default" });
     },
     onError: (err: any) => {
       showClearErrorToast(err, toast, "Failed to delete product");
@@ -177,16 +179,18 @@ export const Products = () => {
             {t("products.subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setIsOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
-        >
-          <Plus className="h-4 w-4" />
-          {t("products.addBtn")}
-        </button>
+        {hasPermission("products", "create") && (
+          <button
+            onClick={() => {
+              resetForm();
+              setIsOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
+          >
+            <Plus className="h-4 w-4" />
+            {t("products.addBtn")}
+          </button>
+        )}
       </div>
 
       {/* Filter Toolbar */}
@@ -264,22 +268,29 @@ export const Products = () => {
                       {formatCurrency(prod.price_distributor || 0)}
                     </td>
                     <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(prod)}
-                        className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(t("products.confirmDelete", { name: prod.name }))) {
-                            deleteMutation.mutate(prod.id);
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4.5 w-4.5" />
-                      </button>
+                      {hasPermission("products", "edit") && (
+                        <button
+                          onClick={() => handleEditClick(prod)}
+                          className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {hasPermission("products", "delete") && (
+                        <button
+                          onClick={() => {
+                            if (confirm(t("products.confirmDelete", { name: prod.name }))) {
+                              deleteMutation.mutate(prod.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4.5 w-4.5" />
+                        </button>
+                      )}
+                      {!hasPermission("products", "edit") && !hasPermission("products", "delete") && (
+                        <span className="text-[10px] text-zinc-400 italic">No Actions</span>
+                      )}
                     </td>
                   </tr>
                 ))}

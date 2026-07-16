@@ -16,7 +16,9 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AppUsersRouteImport } from './routes/app/users'
 import { Route as AppSuppliersRouteImport } from './routes/app/suppliers'
+import { Route as AppSalesOrdersRouteImport } from './routes/app/sales-orders'
 import { Route as AppRolesRouteImport } from './routes/app/roles'
+import { Route as AppPurchaseOrdersRouteImport } from './routes/app/purchase-orders'
 import { Route as AppProductsRouteImport } from './routes/app/products'
 import { Route as AppPackagingRouteImport } from './routes/app/packaging'
 import { Route as AppOutwardRouteImport } from './routes/app/outward'
@@ -24,6 +26,7 @@ import { Route as AppOpnameRouteImport } from './routes/app/opname'
 import { Route as AppInwardRouteImport } from './routes/app/inward'
 import { Route as AppExpiredRouteImport } from './routes/app/expired'
 import { Route as AppCustomerRouteImport } from './routes/app/customer'
+import { Route as AppActivityLogRouteImport } from './routes/app/activity-log'
 
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
@@ -60,9 +63,19 @@ const AppSuppliersRoute = AppSuppliersRouteImport.update({
   path: '/suppliers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppSalesOrdersRoute = AppSalesOrdersRouteImport.update({
+  id: '/sales-orders',
+  path: '/sales-orders',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppRolesRoute = AppRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPurchaseOrdersRoute = AppPurchaseOrdersRouteImport.update({
+  id: '/purchase-orders',
+  path: '/purchase-orders',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProductsRoute = AppProductsRouteImport.update({
@@ -100,11 +113,17 @@ const AppCustomerRoute = AppCustomerRouteImport.update({
   path: '/customer',
   getParentRoute: () => AppRoute,
 } as any)
+const AppActivityLogRoute = AppActivityLogRouteImport.update({
+  id: '/activity-log',
+  path: '/activity-log',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/app/activity-log': typeof AppActivityLogRoute
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
@@ -112,7 +131,9 @@ export interface FileRoutesByFullPath {
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
+  '/app/purchase-orders': typeof AppPurchaseOrdersRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
   '/auth/login': typeof AuthLoginRoute
@@ -121,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/app/activity-log': typeof AppActivityLogRoute
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
@@ -128,7 +150,9 @@ export interface FileRoutesByTo {
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
+  '/app/purchase-orders': typeof AppPurchaseOrdersRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
   '/auth/login': typeof AuthLoginRoute
@@ -139,6 +163,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/app': typeof AppRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/app/activity-log': typeof AppActivityLogRoute
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
@@ -146,7 +171,9 @@ export interface FileRoutesById {
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
+  '/app/purchase-orders': typeof AppPurchaseOrdersRoute
   '/app/roles': typeof AppRolesRoute
+  '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
   '/auth/login': typeof AuthLoginRoute
@@ -158,6 +185,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/activity-log'
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
@@ -165,7 +193,9 @@ export interface FileRouteTypes {
     | '/app/outward'
     | '/app/packaging'
     | '/app/products'
+    | '/app/purchase-orders'
     | '/app/roles'
+    | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
     | '/auth/login'
@@ -174,6 +204,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/auth'
+    | '/app/activity-log'
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
@@ -181,7 +212,9 @@ export interface FileRouteTypes {
     | '/app/outward'
     | '/app/packaging'
     | '/app/products'
+    | '/app/purchase-orders'
     | '/app/roles'
+    | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
     | '/auth/login'
@@ -191,6 +224,7 @@ export interface FileRouteTypes {
     | '/'
     | '/app'
     | '/auth'
+    | '/app/activity-log'
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
@@ -198,7 +232,9 @@ export interface FileRouteTypes {
     | '/app/outward'
     | '/app/packaging'
     | '/app/products'
+    | '/app/purchase-orders'
     | '/app/roles'
+    | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
     | '/auth/login'
@@ -262,11 +298,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSuppliersRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/sales-orders': {
+      id: '/app/sales-orders'
+      path: '/sales-orders'
+      fullPath: '/app/sales-orders'
+      preLoaderRoute: typeof AppSalesOrdersRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/roles': {
       id: '/app/roles'
       path: '/roles'
       fullPath: '/app/roles'
       preLoaderRoute: typeof AppRolesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/app/purchase-orders': {
+      id: '/app/purchase-orders'
+      path: '/purchase-orders'
+      fullPath: '/app/purchase-orders'
+      preLoaderRoute: typeof AppPurchaseOrdersRouteImport
       parentRoute: typeof AppRoute
     }
     '/app/products': {
@@ -318,10 +368,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCustomerRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/activity-log': {
+      id: '/app/activity-log'
+      path: '/activity-log'
+      fullPath: '/app/activity-log'
+      preLoaderRoute: typeof AppActivityLogRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
 interface AppRouteChildren {
+  AppActivityLogRoute: typeof AppActivityLogRoute
   AppCustomerRoute: typeof AppCustomerRoute
   AppExpiredRoute: typeof AppExpiredRoute
   AppInwardRoute: typeof AppInwardRoute
@@ -329,13 +387,16 @@ interface AppRouteChildren {
   AppOutwardRoute: typeof AppOutwardRoute
   AppPackagingRoute: typeof AppPackagingRoute
   AppProductsRoute: typeof AppProductsRoute
+  AppPurchaseOrdersRoute: typeof AppPurchaseOrdersRoute
   AppRolesRoute: typeof AppRolesRoute
+  AppSalesOrdersRoute: typeof AppSalesOrdersRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppUsersRoute: typeof AppUsersRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppActivityLogRoute: AppActivityLogRoute,
   AppCustomerRoute: AppCustomerRoute,
   AppExpiredRoute: AppExpiredRoute,
   AppInwardRoute: AppInwardRoute,
@@ -343,7 +404,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppOutwardRoute: AppOutwardRoute,
   AppPackagingRoute: AppPackagingRoute,
   AppProductsRoute: AppProductsRoute,
+  AppPurchaseOrdersRoute: AppPurchaseOrdersRoute,
   AppRolesRoute: AppRolesRoute,
+  AppSalesOrdersRoute: AppSalesOrdersRoute,
   AppSuppliersRoute: AppSuppliersRoute,
   AppUsersRoute: AppUsersRoute,
   AppIndexRoute: AppIndexRoute,

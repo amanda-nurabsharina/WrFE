@@ -5,8 +5,10 @@ import { imsService, TSupplier } from "../../api/ims.service";
 import { Plus, Trash2, Search, Building2, Pencil } from "lucide-react";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
+import { usePermission } from "../../hooks/usePermission";
 
 export const Suppliers = () => {
+  const { hasPermission } = usePermission();
   const [search, setSearch] = React.useState("");
   const [isOpen, setIsOpen] = React.useState(false);
   const [name, setName] = React.useState("");
@@ -37,7 +39,7 @@ export const Suppliers = () => {
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      toast({ title: "Supplier created successfully", variant: "success" });
+      toast({ title: "Supplier created successfully", variant: "default" });
       setIsOpen(false);
       resetForm();
     },
@@ -54,7 +56,7 @@ export const Suppliers = () => {
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      toast({ title: "Supplier updated successfully", variant: "success" });
+      toast({ title: "Supplier updated successfully", variant: "default" });
       setIsOpen(false);
       resetForm();
     },
@@ -71,7 +73,7 @@ export const Suppliers = () => {
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["suppliers"] });
-      toast({ title: "Supplier deleted successfully", variant: "success" });
+      toast({ title: "Supplier deleted successfully", variant: "default" });
     },
     onError: (err: any) => {
       showClearErrorToast(err, toast, "Failed to delete supplier");
@@ -131,16 +133,18 @@ export const Suppliers = () => {
             {t("suppliers.subtitle")}
           </p>
         </div>
-        <button
-          onClick={() => {
-            resetForm();
-            setIsOpen(true);
-          }}
-          className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
-        >
-          <Plus className="h-4 w-4" />
-          {t("suppliers.addBtn")}
-        </button>
+        {hasPermission("suppliers", "create") && (
+          <button
+            onClick={() => {
+              resetForm();
+              setIsOpen(true);
+            }}
+            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
+          >
+            <Plus className="h-4 w-4" />
+            {t("suppliers.addBtn")}
+          </button>
+        )}
       </div>
 
       {/* Filter Toolbar */}
@@ -194,22 +198,29 @@ export const Suppliers = () => {
                     <td className="py-4 px-6 text-zinc-500 font-mono">{sup.npwp || "-"}</td>
                     <td className="py-4 px-6 text-zinc-500 max-w-[200px] truncate">{sup.address || "-"}</td>
                     <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
-                      <button
-                        onClick={() => handleEditClick(sup)}
-                        className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(t("suppliers.confirmDelete", { name: sup.name }))) {
-                            deleteMutation.mutate(sup.id);
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
-                      >
-                        <Trash2 className="h-4.5 w-4.5" />
-                      </button>
+                      {hasPermission("suppliers", "edit") && (
+                        <button
+                          onClick={() => handleEditClick(sup)}
+                          className="text-indigo-500 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 dark:hover:bg-indigo-955/20 rounded-lg transition-colors"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </button>
+                      )}
+                      {hasPermission("suppliers", "delete") && (
+                        <button
+                          onClick={() => {
+                            if (confirm(t("suppliers.confirmDelete", { name: sup.name }))) {
+                              deleteMutation.mutate(sup.id);
+                            }
+                          }}
+                          className="text-red-500 hover:text-red-600 p-1.5 hover:bg-red-50 dark:hover:bg-red-955/20 rounded-lg transition-colors"
+                        >
+                          <Trash2 className="h-4.5 w-4.5" />
+                        </button>
+                      )}
+                      {!hasPermission("suppliers", "edit") && !hasPermission("suppliers", "delete") && (
+                        <span className="text-[10px] text-zinc-400 italic">No Actions</span>
+                      )}
                     </td>
                   </tr>
                 ))}

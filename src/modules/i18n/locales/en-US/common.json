@@ -42,6 +42,8 @@
     "products": "Master Products",
     "suppliers": "Master Suppliers",
     "customers": "Master Customers",
+    "purchaseOrders": "Purchase Orders (PO)",
+    "salesOrders": "Sales Orders (SO)",
     "packaging": "Master Packaging",
     "users": "User Management",
     "roles": "Roles & Permissions",
@@ -49,6 +51,7 @@
     "outward": "Goods Outward",
     "expired": "Expired Monitoring",
     "opname": "Stock Opname",
+    "activityLog": "Log Activity",
     "portal": "Dashboard Portal"
   },
   "dashboard": {

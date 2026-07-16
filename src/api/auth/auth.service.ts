@@ -60,6 +60,7 @@ class AuthService {
           name: backendData.user.name,
           email: backendData.user.email,
           role: (backendData.user.role === "admin" || backendData.user.role === "super_admin" || backendData.user.role === "super admin") ? "admin" : "basic", // Map to frontend's predefined roles
+          rawRole: backendData.user.role,
           appSettings: { theme: "light", lng: "en" },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString(),

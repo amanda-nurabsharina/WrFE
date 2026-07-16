@@ -21,6 +21,7 @@ export const userSchema = z.object({
   id: z.string().min(1),
   username: z.string().min(1),
   role: userRoleSchema,
+  rawRole: z.string().optional(),
 
   email: z.email(),
   name: z.string().min(1),

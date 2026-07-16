@@ -32,7 +32,7 @@ export const Packaging = () => {
       toast({
         title: t("success"),
         description: "Packaging unit created successfully",
-        variant: "success",
+        variant: "default",
       });
       setIsOpen(false);
       resetForm();
@@ -50,7 +50,7 @@ export const Packaging = () => {
       toast({
         title: t("success"),
         description: "Packaging unit updated successfully",
-        variant: "success",
+        variant: "default",
       });
       setIsOpen(false);
       resetForm();
@@ -67,7 +67,7 @@ export const Packaging = () => {
       toast({
         title: t("success"),
         description: "Packaging unit deleted successfully",
-        variant: "success",
+        variant: "default",
       });
     },
     onError: (err: any) => {

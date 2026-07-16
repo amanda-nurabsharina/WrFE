@@ -7,5 +7,7 @@ export * from "./GoodsOut";
 export * from "./ExpiredMonitoring";
 export * from "./StockOpname";
 export * from "./Suppliers";
+export * from "./Customer";
 export * from "./Users";
 export * from "./Roles";
+export * from "./ActivityLog";
