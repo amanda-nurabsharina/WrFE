@@ -11,3 +11,4 @@ export * from "./Customer";
 export * from "./Users";
 export * from "./Roles";
 export * from "./ActivityLog";
+export * from "./Reporting";

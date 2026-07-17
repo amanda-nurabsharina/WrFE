@@ -39,6 +39,7 @@
   "search": "Cari",
   "navigation": {
     "overview": "Ikhtisar",
+    "masterData": "Master Data",
     "products": "Master Barang",
     "suppliers": "Master Supplier",
     "customers": "Master Customer",
@@ -52,7 +53,18 @@
     "expired": "Monitoring Expired",
     "opname": "Stock Opname",
     "activityLog": "Log Aktivitas",
-    "portal": "Portal Dashboard"
+    "portal": "Portal Dashboard",
+    "reporting": "Laporan",
+    "inventoryValue": "Nilai Persediaan",
+    "stockAging": "Usia Stok (Aging)",
+    "stockMutation": "Mutasi Stok",
+    "distribution": "Laporan Penyaluran",
+    "orderManagement": "Manajemen Pesanan",
+    "warehouseInventory": "Gudang & Stok",
+    "systemSettings": "Pengaturan Sistem",
+    "alertsTitle": "Peringatan & Notifikasi",
+    "emptyAlertsCombined": "Semua stok & batch dalam keadaan aman.",
+    "viewAllAlerts": "Lihat Semua Peringatan"
   },
   "dashboard": {
     "title": "Ikhtisar",
@@ -94,7 +106,24 @@
     "priceRetail": "Harga Retail",
     "stock": "Sisa Stok",
     "placeholderSearch": "Cari berdasarkan kode, nama, sub-kategori...",
-    "confirmDelete": "Hapus barang {{name}}?"
+    "confirmDelete": "Hapus barang {{name}}?",
+    "storageSpecs": "Spesifikasi Penyimpanan",
+    "storageTemp": "Suhu Penyimpanan",
+    "storageHumidity": "Kelembapan Penyimpanan",
+    "storageRestrictions": "Catatan Penanganan B3 / Larangan",
+    "fefoBadge": "Prioritas Keluar (FEFO)",
+    "newestBadge": "Stok Terbaru",
+    "outOfStockBadge": "Out of Stock",
+    "activeBatchesTitle": "Daftar Batch (Urutan Keluar - FEFO)",
+    "loadBatchesText": "Memuat data batch...",
+    "noBatchesText": "Tidak ada batch aktif untuk produk ini",
+    "initialBatchHeader": "Inisialisasi Stok Awal & Batch (Opsional)",
+    "initialBatchDesc": "Gunakan bagian ini jika Anda ingin langsung mendaftarkan kuantitas barang beserta nomor batch pertamanya. Jika dikosongkan, produk akan terdaftar dengan stok 0, dan Anda dapat menambah stok di kemudian hari melalui menu Transaksi Barang Masuk.",
+    "initialBatchNo": "Nomor Batch Awal",
+    "initialQty": "Stok Awal",
+    "initialExpiry": "Tanggal Kadaluwarsa",
+    "initialWarehouse": "Gudang Penyimpanan",
+    "minStockTooltip": "Batas stok minimum untuk memicu alarm peringatan kebutuhan restock barang (Reorder Alert)."
   },
   "packaging": {
     "title": "Master Kemasan",

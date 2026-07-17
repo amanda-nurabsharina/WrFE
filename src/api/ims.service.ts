@@ -103,6 +103,13 @@ export type TProduct = {
   price_distributor?: number;
   price_retail?: number;
   stock?: number;
+  storage_temp?: string;
+  storage_humidity?: string;
+  storage_restrictions?: string;
+  initial_batch_no?: string;
+  initial_qty?: number;
+  initial_expiry_date?: string;
+  initial_warehouse_id?: string;
 };
 
 export type TInventoryBatch = {
@@ -403,6 +410,56 @@ class IMSService {
     if (params.limit) qs.set("limit", String(params.limit));
     return handleAsync<any, { data: any }>(() =>
       apiService.get(`activity-logs?${qs.toString()}`)
+    );
+  }
+
+  // Reports
+  async getInventoryValueReport(categoryId?: string, warehouseId?: string) {
+    const qs = new URLSearchParams();
+    if (categoryId) qs.set("category_id", categoryId);
+    if (warehouseId) qs.set("warehouse_id", warehouseId);
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`reports/inventory-value?${qs.toString()}`)
+    );
+  }
+
+  async getStockAgingReport(categoryId?: string, warehouseId?: string, productId?: string) {
+    const qs = new URLSearchParams();
+    if (categoryId) qs.set("category_id", categoryId);
+    if (warehouseId) qs.set("warehouse_id", warehouseId);
+    if (productId) qs.set("product_id", productId);
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`reports/stock-aging?${qs.toString()}`)
+    );
+  }
+
+  async getStockMutationReport(startDate?: string, endDate?: string, productId?: string, warehouseId?: string) {
+    const qs = new URLSearchParams();
+    if (startDate) qs.set("start_date", startDate);
+    if (endDate) qs.set("end_date", endDate);
+    if (productId) qs.set("product_id", productId);
+    if (warehouseId) qs.set("warehouse_id", warehouseId);
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`reports/stock-mutation?${qs.toString()}`)
+    );
+  }
+
+  async getDistributionReport(categoryId?: string, subCategory?: string, startDate?: string, endDate?: string) {
+    const qs = new URLSearchParams();
+    if (categoryId) qs.set("category_id", categoryId);
+    if (subCategory) qs.set("sub_category", subCategory);
+    if (startDate) qs.set("start_date", startDate);
+    if (endDate) qs.set("end_date", endDate);
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`reports/distribution?${qs.toString()}`)
+    );
+  }
+
+  async getReorderPointReport(leadTime?: number) {
+    const qs = new URLSearchParams();
+    if (leadTime !== undefined) qs.set("lead_time", String(leadTime));
+    return handleAsync<any, { data: any }>(() =>
+      apiService.get(`reports/reorder-point?${qs.toString()}`)
     );
   }
 }

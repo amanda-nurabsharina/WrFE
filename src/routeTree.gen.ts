@@ -18,6 +18,7 @@ import { Route as AppUsersRouteImport } from './routes/app/users'
 import { Route as AppSuppliersRouteImport } from './routes/app/suppliers'
 import { Route as AppSalesOrdersRouteImport } from './routes/app/sales-orders'
 import { Route as AppRolesRouteImport } from './routes/app/roles'
+import { Route as AppReportingRouteImport } from './routes/app/reporting'
 import { Route as AppPurchaseOrdersRouteImport } from './routes/app/purchase-orders'
 import { Route as AppProductsRouteImport } from './routes/app/products'
 import { Route as AppPackagingRouteImport } from './routes/app/packaging'
@@ -71,6 +72,11 @@ const AppSalesOrdersRoute = AppSalesOrdersRouteImport.update({
 const AppRolesRoute = AppRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppReportingRoute = AppReportingRouteImport.update({
+  id: '/reporting',
+  path: '/reporting',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPurchaseOrdersRoute = AppPurchaseOrdersRouteImport.update({
@@ -132,6 +138,7 @@ export interface FileRoutesByFullPath {
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
+  '/app/reporting': typeof AppReportingRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -151,6 +158,7 @@ export interface FileRoutesByTo {
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
+  '/app/reporting': typeof AppReportingRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/app/packaging': typeof AppPackagingRoute
   '/app/products': typeof AppProductsRoute
   '/app/purchase-orders': typeof AppPurchaseOrdersRoute
+  '/app/reporting': typeof AppReportingRoute
   '/app/roles': typeof AppRolesRoute
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/app/packaging'
     | '/app/products'
     | '/app/purchase-orders'
+    | '/app/reporting'
     | '/app/roles'
     | '/app/sales-orders'
     | '/app/suppliers'
@@ -213,6 +223,7 @@ export interface FileRouteTypes {
     | '/app/packaging'
     | '/app/products'
     | '/app/purchase-orders'
+    | '/app/reporting'
     | '/app/roles'
     | '/app/sales-orders'
     | '/app/suppliers'
@@ -233,6 +244,7 @@ export interface FileRouteTypes {
     | '/app/packaging'
     | '/app/products'
     | '/app/purchase-orders'
+    | '/app/reporting'
     | '/app/roles'
     | '/app/sales-orders'
     | '/app/suppliers'
@@ -312,6 +324,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRolesRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/reporting': {
+      id: '/app/reporting'
+      path: '/reporting'
+      fullPath: '/app/reporting'
+      preLoaderRoute: typeof AppReportingRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/purchase-orders': {
       id: '/app/purchase-orders'
       path: '/purchase-orders'
@@ -388,6 +407,7 @@ interface AppRouteChildren {
   AppPackagingRoute: typeof AppPackagingRoute
   AppProductsRoute: typeof AppProductsRoute
   AppPurchaseOrdersRoute: typeof AppPurchaseOrdersRoute
+  AppReportingRoute: typeof AppReportingRoute
   AppRolesRoute: typeof AppRolesRoute
   AppSalesOrdersRoute: typeof AppSalesOrdersRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
@@ -405,6 +425,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPackagingRoute: AppPackagingRoute,
   AppProductsRoute: AppProductsRoute,
   AppPurchaseOrdersRoute: AppPurchaseOrdersRoute,
+  AppReportingRoute: AppReportingRoute,
   AppRolesRoute: AppRolesRoute,
   AppSalesOrdersRoute: AppSalesOrdersRoute,
   AppSuppliersRoute: AppSuppliersRoute,

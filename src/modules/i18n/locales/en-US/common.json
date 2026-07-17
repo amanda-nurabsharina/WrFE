@@ -39,6 +39,7 @@
   "search": "Search",
   "navigation": {
     "overview": "Overview",
+    "masterData": "Master Data",
     "products": "Master Products",
     "suppliers": "Master Suppliers",
     "customers": "Master Customers",
@@ -52,7 +53,18 @@
     "expired": "Expired Monitoring",
     "opname": "Stock Opname",
     "activityLog": "Log Activity",
-    "portal": "Dashboard Portal"
+    "portal": "Dashboard Portal",
+    "reporting": "Reporting",
+    "inventoryValue": "Inventory Value",
+    "stockAging": "Stock Aging",
+    "stockMutation": "Stock Mutation",
+    "distribution": "Distribution Report",
+    "orderManagement": "Order Management",
+    "warehouseInventory": "Warehouse & Stock",
+    "systemSettings": "System Settings",
+    "alertsTitle": "Alerts & Notifications",
+    "emptyAlertsCombined": "All stock & batches are safe.",
+    "viewAllAlerts": "View All Alerts"
   },
   "dashboard": {
     "title": "Overview",
@@ -94,7 +106,24 @@
     "priceRetail": "Retail Price",
     "stock": "Available Stock",
     "placeholderSearch": "Search by code, name, sub-category...",
-    "confirmDelete": "Delete product {{name}}?"
+    "confirmDelete": "Delete product {{name}}?",
+    "storageSpecs": "Storage Specifications",
+    "storageTemp": "Storage Temperature",
+    "storageHumidity": "Storage Humidity",
+    "storageRestrictions": "B3 Handling / Restrictions",
+    "fefoBadge": "Priority Out (FEFO)",
+    "newestBadge": "Newest Stock",
+    "outOfStockBadge": "Out of Stock",
+    "activeBatchesTitle": "Batch List (Priority Out - FEFO)",
+    "loadBatchesText": "Loading batches...",
+    "noBatchesText": "No active batches for this product",
+    "initialBatchHeader": "Initial Stock & Batch Setup (Optional)",
+    "initialBatchDesc": "Use this section if you want to register initial stock quantities with its first batch number. If left blank, the product will be registered with 0 stock, and you can add stock later via Goods Inward.",
+    "initialBatchNo": "Initial Batch Number",
+    "initialQty": "Initial Quantity",
+    "initialExpiry": "Expiry Date",
+    "initialWarehouse": "Storage Warehouse",
+    "minStockTooltip": "Minimum stock limit to trigger reorder alerts."
   },
   "packaging": {
     "title": "Master Packaging",

@@ -2,11 +2,104 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { imsService, TProduct } from "../../api/ims.service";
-import { Plus, Trash2, Search, Package2, Pencil } from "lucide-react";
+import { Plus, Trash2, Search, Package2, Pencil, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, Info } from "lucide-react";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
 import { usePermission } from "../../hooks/usePermission";
-
+// Subcomponent to fetch and render batches for FIFO/FEFO
+const ProductBatchesView = ({ productId, unit }: { productId: string; unit: string }) => {
+  const { t } = useTranslation("common");
+  const { data: batchesResp, isLoading } = useQuery({
+    queryKey: ["product-batches", productId],
+    queryFn: () => imsService.getBatches({ product_id: productId })
+  });
+  
+  const batches = React.useMemo(() => {
+    const list = batchesResp?.data?.data || [];
+    return [...list].sort((a, b) => new Date(a.expired_date).getTime() - new Date(b.expired_date).getTime());
+  }, [batchesResp]);
+  
+  if (isLoading) {
+    return <div className="text-xs text-zinc-400 p-2 flex items-center gap-2"><RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-500" /> {t("products.loadBatchesText")}</div>;
+  }
+  
+  if (batches.length === 0) {
+    return <div className="text-xs text-zinc-400 p-2 italic border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl bg-zinc-50/50 dark:bg-zinc-950/10">{t("products.noBatchesText")}</div>;
+  }
+  
+  return (
+    <div className="space-y-2">
+      <div className="text-[10px] font-black uppercase text-indigo-650 dark:text-indigo-400 tracking-wider">
+        {t("products.activeBatchesTitle")}
+      </div>
+      <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
+        {batches.map((b: any, idx: number) => {
+          const activeBatches = batches.filter((x: any) => x.status === "active");
+          const isFirstActive = activeBatches.length > 0 && activeBatches[0].id === b.id;
+          const isLastActive = activeBatches.length > 1 && activeBatches[activeBatches.length - 1].id === b.id;
+          const isExpired = b.status === "expired" || new Date(b.expired_date) <= new Date();
+          const isQuarantine = b.status === "quarantine";
+          
+          return (
+            <div 
+              key={b.id} 
+              className={`p-3 rounded-xl border flex flex-col justify-between gap-1 transition-all ${
+                isExpired 
+                  ? "bg-rose-50/40 border-rose-250 dark:bg-rose-950/10 dark:border-rose-900/30" 
+                  : isQuarantine
+                  ? "bg-amber-50/40 border-amber-250 dark:bg-amber-950/10 dark:border-amber-900/30"
+                  : isFirstActive 
+                  ? "bg-emerald-50/40 border-emerald-250 dark:bg-emerald-950/10 dark:border-emerald-900/30 shadow-sm" 
+                  : "bg-zinc-50 dark:bg-zinc-950/20 border-zinc-150 dark:border-zinc-800"
+              }`}
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <div className="font-bold text-zinc-850 dark:text-zinc-200 text-xs">
+                    Batch: {b.batch_number}
+                  </div>
+                  <div className="text-[10px] text-zinc-450 dark:text-zinc-500 font-mono mt-0.5">
+                    Expired: {new Date(b.expired_date).toLocaleDateString("id-ID", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric"
+                    })}
+                  </div>
+                </div>
+                
+                {isExpired && (
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-rose-100 dark:bg-rose-900/40 text-rose-800 dark:text-rose-450 uppercase">
+                    Expired
+                  </span>
+                )}
+                {isQuarantine && (
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-450 uppercase">
+                    Karantina
+                  </span>
+                )}
+                {!isExpired && !isQuarantine && isFirstActive && (
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-emerald-100 dark:bg-emerald-900/40 text-emerald-800 dark:text-emerald-450 uppercase animate-pulse">
+                    {t("products.fefoBadge")}
+                  </span>
+                )}
+                {!isExpired && !isQuarantine && isLastActive && (
+                  <span className="px-2 py-0.5 rounded-full text-[8px] font-black bg-blue-105 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400 uppercase">
+                    {t("products.newestBadge")}
+                  </span>
+                )}
+              </div>
+              
+              <div className="flex justify-between items-center text-xs mt-1 border-t border-zinc-200/40 dark:border-zinc-850/40 pt-1">
+                <span className="text-zinc-450 dark:text-zinc-500 font-medium">Stok Batch:</span>
+                <span className="font-black text-zinc-850 dark:text-zinc-100">{b.qty} {unit}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 export const Products = () => {
   const { hasPermission } = usePermission();
   const [search, setSearch] = React.useState("");
@@ -31,6 +124,21 @@ export const Products = () => {
 
   const [editingProduct, setEditingProduct] = React.useState<TProduct | null>(null);
 
+  // Storage specs and Initial Batch states
+  const [storageTemp, setStorageTemp] = React.useState("");
+  const [storageHumidity, setStorageHumidity] = React.useState("");
+  const [storageRestrictions, setStorageRestrictions] = React.useState("");
+  const [initialBatchNo, setInitialBatchNo] = React.useState("");
+  const [initialQty, setInitialQty] = React.useState(0);
+  const [initialExpiryDate, setInitialExpiryDate] = React.useState("");
+  const [initialWarehouseID, setInitialWarehouseID] = React.useState("");
+
+  const [expandedProductIds, setExpandedProductIds] = React.useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedProductIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const { toast } = useToast();
   const { t } = useTranslation("common");
   const queryClient = useQueryClient();
@@ -49,12 +157,25 @@ export const Products = () => {
   });
   const packagingUnits = packagingResponse?.data?.data || [];
 
-  // Set default packaging unit when loaded and not editing
+  // Query warehouses (for initial batch warehouse select)
+  const { data: warehousesResp } = useQuery({
+    queryKey: ["warehouses"],
+    queryFn: () => imsService.getWarehouses()
+  });
+  const warehouses = warehousesResp?.data?.data || [];
+
+  // Set default packaging unit and warehouse when loaded and not editing
   React.useEffect(() => {
     if (packagingUnits.length > 0 && !packagingUnitID && !editingProduct) {
       setPackagingUnitID(packagingUnits[0].id);
     }
   }, [packagingUnits, packagingUnitID, editingProduct]);
+
+  React.useEffect(() => {
+    if (warehouses.length > 0 && !initialWarehouseID && !editingProduct) {
+      setInitialWarehouseID(warehouses[0].id);
+    }
+  }, [warehouses, initialWarehouseID, editingProduct]);
 
   const createMutation = useMutation({
     mutationFn: (payload: any) => imsService.createProduct(payload),
@@ -110,6 +231,13 @@ export const Products = () => {
     setPriceDistributor(0);
     setPriceRetail(0);
     setEditingProduct(null);
+    setStorageTemp("");
+    setStorageHumidity("");
+    setStorageRestrictions("");
+    setInitialBatchNo("");
+    setInitialQty(0);
+    setInitialExpiryDate("");
+    setInitialWarehouseID(warehouses[0]?.id || "");
   };
 
   const handleEditClick = (prod: TProduct) => {
@@ -129,6 +257,12 @@ export const Products = () => {
     setPurchasePrice(prod.purchase_price || 0);
     setPriceDistributor(prod.price_distributor || 0);
     setPriceRetail(prod.price_retail || 0);
+    setStorageTemp(prod.storage_temp || "");
+    setStorageHumidity(prod.storage_humidity || "");
+    setStorageRestrictions(prod.storage_restrictions || "");
+    setInitialBatchNo("");
+    setInitialQty(0);
+    setInitialExpiryDate("");
     setIsOpen(true);
   };
 
@@ -150,6 +284,15 @@ export const Products = () => {
       purchase_price: Number(purchasePrice),
       price_distributor: Number(priceDistributor),
       price_retail: Number(priceRetail),
+      storage_temp: storageTemp,
+      storage_humidity: storageHumidity,
+      storage_restrictions: storageRestrictions,
+      ...(!editingProduct && initialBatchNo ? {
+        initial_batch_no: initialBatchNo,
+        initial_qty: Number(initialQty),
+        initial_expiry_date: initialExpiryDate,
+        initial_warehouse_id: initialWarehouseID
+      } : {})
     };
 
     if (editingProduct) {
@@ -234,11 +377,26 @@ export const Products = () => {
               </thead>
               <tbody className="divide-y divide-zinc-100 dark:divide-zinc-855 font-medium text-zinc-700 dark:text-zinc-300">
                 {products.map((prod: TProduct) => (
-                  <tr key={prod.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
-                    <td className="py-4 px-6 font-bold text-indigo-600 dark:text-indigo-400">
-                      <div>{prod.code}</div>
-                      <div className="text-[10px] text-zinc-400 font-normal">{prod.barcode || "-"}</div>
-                    </td>
+                  <React.Fragment key={prod.id}>
+                    <tr className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
+                      <td className="py-4 px-6 font-bold text-indigo-650 dark:text-indigo-400">
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => toggleExpand(prod.id)}
+                            className="text-zinc-400 hover:text-zinc-600 p-1 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                          >
+                            {expandedProductIds[prod.id] ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                          <div>
+                            <div>{prod.code}</div>
+                            <div className="text-[10px] text-zinc-400 font-normal">{prod.barcode || "-"}</div>
+                          </div>
+                        </div>
+                      </td>
                     <td className="py-4 px-6 font-semibold text-zinc-900 dark:text-white">
                       <div>{prod.name}</div>
                       {prod.kementan_reg_no && (
@@ -257,8 +415,19 @@ export const Products = () => {
                       </span>
                     </td>
                     <td className="py-4 px-6 text-zinc-500">{prod.sub_category || "-"}</td>
-                    <td className="py-4 px-6 font-bold text-zinc-900 dark:text-white">
-                      {prod.stock || 0} {prod.unit}
+                    <td className="py-4 px-6">
+                      {(prod.stock ?? 0) > 0 ? (
+                        <span className="font-bold text-zinc-900 dark:text-white">
+                          {prod.stock} {prod.unit}
+                        </span>
+                      ) : (
+                        <div className="space-y-1">
+                          <span className="font-bold text-zinc-450 dark:text-zinc-500 line-through">0 {prod.unit}</span>
+                          <span className="block px-2 py-0.5 w-max rounded-full text-[9px] font-black bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-400 uppercase">
+                            Out of Stock
+                          </span>
+                        </div>
+                      )}
                     </td>
                     <td className="py-4 px-6 text-zinc-500">
                       1 {prod.packaging_unit?.name || "Kemasan"} = {prod.conversion_ratio || 1} {prod.unit}
@@ -293,7 +462,48 @@ export const Products = () => {
                       )}
                     </td>
                   </tr>
-                ))}
+                  {expandedProductIds[prod.id] && (
+                    <tr className="bg-zinc-50/40 dark:bg-zinc-950/10">
+                      <td colSpan={9} className="py-4 px-6 border-b border-zinc-200 dark:border-zinc-800">
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                          {/* Storage Specs */}
+                          <div className="md:col-span-1 p-4 bg-white dark:bg-zinc-900 border border-zinc-150 dark:border-zinc-800 rounded-2xl space-y-3 shadow-sm">
+                            <div className="text-[10px] font-black uppercase text-zinc-450 dark:text-zinc-500 tracking-wider flex items-center gap-1.5 border-b border-zinc-100 dark:border-zinc-800 pb-1.5">
+                              <AlertTriangle className="h-3.5 w-3.5 text-indigo-650 dark:text-indigo-400" />
+                              {t("products.storageSpecs")}
+                            </div>
+                            <div className="space-y-2.5 text-xs">
+                              <div>
+                                <span className="font-bold text-zinc-400 block text-[9px] uppercase tracking-wider">{t("products.storageTemp")}:</span>
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                                  {prod.storage_temp || "Normal (Suhu Ruang 25°C - 30°C)"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-bold text-zinc-400 block text-[9px] uppercase tracking-wider">{t("products.storageHumidity")}:</span>
+                                <span className="font-semibold text-zinc-800 dark:text-zinc-200">
+                                  {prod.storage_humidity || "Normal (Max 70%)"}
+                                </span>
+                              </div>
+                              <div>
+                                <span className="font-bold text-zinc-400 block text-[9px] uppercase tracking-wider">{t("products.storageRestrictions")}:</span>
+                                <span className="font-semibold text-zinc-700 dark:text-zinc-300 whitespace-pre-line">
+                                  {prod.storage_restrictions || "-"}
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          {/* Active Batches */}
+                          <div className="md:col-span-2">
+                            <ProductBatchesView productId={prod.id} unit={prod.unit || "Liter"} />
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              ))}
               </tbody>
             </table>
           </div>
@@ -460,8 +670,8 @@ export const Products = () => {
                     min="1"
                     required
                     placeholder="e.g. 20 (meaning 1 pack = 20 units)"
-                    value={conversionRatio}
-                    onChange={(e) => setConversionRatio(Number(e.target.value))}
+                    value={conversionRatio === 0 ? "" : conversionRatio}
+                    onChange={(e) => setConversionRatio(e.target.value === "" ? 0 : Number(e.target.value))}
                     className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
@@ -469,18 +679,126 @@ export const Products = () => {
 
               {/* Row 7: Min Stock */}
               <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("products.minStock")} *</label>
+                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300 flex items-center gap-1.5">
+                  {t("products.minStock")} *
+                  <div className="group relative inline-block cursor-help">
+                    <Info className="h-3.5 w-3.5 text-zinc-400 hover:text-zinc-500 transition-colors" />
+                    <div className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-64 p-2 bg-zinc-900 text-white text-[10px] rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-[200] font-normal leading-normal text-center normal-case">
+                      {t("products.minStockTooltip")}
+                      <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-zinc-900"></div>
+                    </div>
+                  </div>
+                </label>
                 <input
                   type="number"
                   min="0"
                   required
-                  value={minStock}
-                  onChange={(e) => setMinStock(Number(e.target.value))}
+                  value={minStock === 0 ? "" : minStock}
+                  onChange={(e) => setMinStock(e.target.value === "" ? 0 : Number(e.target.value))}
                   className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
 
-              {/* Row 8: Prices (Purchase Price, Distributor Price, Retail Price) */}
+              {/* Row 8: Storage Specifications */}
+              <div className="p-4 bg-zinc-50 dark:bg-zinc-955 border border-zinc-200 dark:border-zinc-800 rounded-2xl space-y-3">
+                <div className="text-xs font-extrabold text-zinc-500 dark:text-zinc-450 uppercase tracking-wider border-b border-zinc-200 dark:border-zinc-800 pb-1.5">
+                  {t("products.storageSpecs")}
+                </div>
+                <div className="grid gap-4 grid-cols-2">
+                  <div className="grid gap-1">
+                    <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.storageTemp")}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 20°C - 25°C"
+                      value={storageTemp}
+                      onChange={(e) => setStorageTemp(e.target.value)}
+                      className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                  <div className="grid gap-1">
+                    <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.storageHumidity")}</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Max 60%"
+                      value={storageHumidity}
+                      onChange={(e) => setStorageHumidity(e.target.value)}
+                      className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                  </div>
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.storageRestrictions")}</label>
+                  <textarea
+                    placeholder="e.g. Jauhkan dari bahan asam, jangan ditumpuk lebih dari 5 karton."
+                    value={storageRestrictions}
+                    onChange={(e) => setStorageRestrictions(e.target.value)}
+                    rows={2}
+                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500 w-full"
+                  />
+                </div>
+              </div>
+
+              {/* Row 9: Optional Initial Batch Section (Only during creation) */}
+              {!editingProduct && (
+                <div className="p-4 bg-indigo-50/20 dark:bg-indigo-950/5 border border-indigo-100 dark:border-indigo-900/30 rounded-2xl space-y-3">
+                  <div className="text-xs font-extrabold text-indigo-700 dark:text-indigo-400 uppercase tracking-wider border-b border-indigo-100 dark:border-indigo-900/10 pb-1.5">
+                    {t("products.initialBatchHeader")}
+                  </div>
+                  <p className="text-[10px] text-indigo-600 dark:text-indigo-400 leading-normal font-normal">
+                    {t("products.initialBatchDesc")}
+                  </p>
+                  <div className="grid gap-4 grid-cols-2">
+                    <div className="grid gap-1">
+                      <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.initialBatchNo")}</label>
+                      <input
+                        type="text"
+                        placeholder="e.g. BATCH-A1"
+                        value={initialBatchNo}
+                        onChange={(e) => setInitialBatchNo(e.target.value)}
+                        className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.initialQty")} ({unit})</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={initialQty === 0 ? "" : initialQty}
+                        onChange={(e) => setInitialQty(e.target.value === "" ? 0 : Number(e.target.value))}
+                        className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid gap-4 grid-cols-2">
+                    <div className="grid gap-1">
+                      <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.initialExpiry")}</label>
+                      <input
+                        type="date"
+                        value={initialExpiryDate}
+                        onChange={(e) => setInitialExpiryDate(e.target.value)}
+                        className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      />
+                    </div>
+                    <div className="grid gap-1">
+                      <label className="text-[10px] font-semibold text-zinc-650 dark:text-zinc-350">{t("products.initialWarehouse")}</label>
+                      <select
+                        value={initialWarehouseID}
+                        onChange={(e) => setInitialWarehouseID(e.target.value)}
+                        className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      >
+                        <option value="">Pilih Gudang</option>
+                        {warehouses.map((wh: any) => (
+                          <option key={wh.id} value={wh.id}>
+                            {wh.name} ({wh.code})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Row 10: Prices (Purchase Price, Distributor Price, Retail Price) */}
               <div className="grid gap-4 grid-cols-3 bg-zinc-50 dark:bg-zinc-955 p-3 rounded-xl border border-zinc-200 dark:border-zinc-800">
                 <div className="grid gap-1">
                   <label className="text-[10px] font-semibold text-zinc-600 dark:text-zinc-300">{t("products.purchasePrice")} *</label>
@@ -488,8 +806,8 @@ export const Products = () => {
                     type="number"
                     min="0"
                     required
-                    value={purchasePrice}
-                    onChange={(e) => setPurchasePrice(Number(e.target.value))}
+                    value={purchasePrice === 0 ? "" : purchasePrice}
+                    onChange={(e) => setPurchasePrice(e.target.value === "" ? 0 : Number(e.target.value))}
                     className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
@@ -499,8 +817,8 @@ export const Products = () => {
                     type="number"
                     min="0"
                     required
-                    value={priceDistributor}
-                    onChange={(e) => setPriceDistributor(Number(e.target.value))}
+                    value={priceDistributor === 0 ? "" : priceDistributor}
+                    onChange={(e) => setPriceDistributor(e.target.value === "" ? 0 : Number(e.target.value))}
                     className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>
@@ -510,8 +828,8 @@ export const Products = () => {
                     type="number"
                     min="0"
                     required
-                    value={priceRetail}
-                    onChange={(e) => setPriceRetail(Number(e.target.value))}
+                    value={priceRetail === 0 ? "" : priceRetail}
+                    onChange={(e) => setPriceRetail(e.target.value === "" ? 0 : Number(e.target.value))}
                     className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-white dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
                   />
                 </div>

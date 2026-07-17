@@ -33,6 +33,24 @@ export const PurchaseOrders = () => {
   const suppliers = supsResp?.data?.data || [];
   const products = prodsResp?.data?.data || [];
 
+  React.useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const supplier = params.get("supplier_id");
+    const product = params.get("product_id");
+    const qty = params.get("qty");
+    
+    if (supplier && product && qty && products.length > 0) {
+      setSupplierId(supplier);
+      const prod = products.find((p: any) => p.id === product);
+      const price = prod ? (prod.purchase_price ?? 0) : 0;
+      setItems([{ product_id: product, qty: Number(qty), price: price }]);
+      setIsOpen(true);
+      
+      const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.pushState({ path: newurl }, '', newurl);
+    }
+  }, [products]);
+
   const createMutation = useMutation({
     mutationFn: (payload: any) => imsService.createPurchaseOrder(payload),
     onSuccess: (res: any) => {
