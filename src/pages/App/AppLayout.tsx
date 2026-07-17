@@ -78,7 +78,7 @@ export const AppLayout = () => {
           type: "out_of_stock",
           title: p.name,
           subtitle: p.code,
-          message: `Stok Habis! (Batas Min: ${p.minimum_stock} ${p.unit})`,
+          message: t("navigation.msgOutOfStock", { min: p.minimum_stock, unit: p.unit }),
           link: "/app/products",
           severity: "critical"
         });
@@ -88,7 +88,7 @@ export const AppLayout = () => {
           type: "low_stock",
           title: p.name,
           subtitle: p.code,
-          message: `Stok Menipis: sisa ${stock} ${p.unit} (Batas Min: ${p.minimum_stock})`,
+          message: t("navigation.msgLowStock", { stock, unit: p.unit, min: p.minimum_stock }),
           link: "/app/products",
           severity: "warning"
         });
@@ -107,18 +107,18 @@ export const AppLayout = () => {
       list.push({
         id: `expiry-${a.id}`,
         type: "expiry",
-        title: a.product?.name || "Produk",
+        title: a.product?.name || "Product",
         subtitle: `Batch: ${a.batch_number}`,
         message: isExpired 
-          ? `Batch ${a.batch_number} sudah kedaluwarsa!` 
-          : `Batch ${a.batch_number} kedaluwarsa dalam ${diffDays} hari!`,
+          ? t("navigation.msgExpired", { batch: a.batch_number })
+          : t("navigation.msgNearExpiry", { batch: a.batch_number, days: diffDays }),
         link: "/app/expired",
         severity: isExpired ? "critical" : "warning"
       });
     });
 
     return list;
-  }, [productsList, alerts]);
+  }, [productsList, alerts, t]);
 
   const isAdmin = user?.role === "admin" || user?.role?.includes("admin") || user?.role?.includes("super");
 
@@ -345,7 +345,7 @@ export const AppLayout = () => {
                                 ? "bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-455" 
                                 : "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-455"
                             }`}>
-                              {notif.type === "expiry" ? "Expiry" : notif.type === "out_of_stock" ? "Habis" : "Menipis"}
+                              {notif.type === "expiry" ? t("navigation.badgeExpiry") : notif.type === "out_of_stock" ? t("navigation.badgeOutOfStock") : t("navigation.badgeLowStock")}
                             </span>
                           </div>
                         </div>

@@ -64,7 +64,14 @@
     "systemSettings": "Pengaturan Sistem",
     "alertsTitle": "Peringatan & Notifikasi",
     "emptyAlertsCombined": "Semua stok & batch dalam keadaan aman.",
-    "viewAllAlerts": "Lihat Semua Peringatan"
+    "viewAllAlerts": "Lihat Semua Peringatan",
+    "badgeOutOfStock": "Habis",
+    "badgeLowStock": "Menipis",
+    "badgeExpiry": "Expiry",
+    "msgOutOfStock": "Stok Habis! (Batas Min: {{min}} {{unit}})",
+    "msgLowStock": "Stok Menipis: sisa {{stock}} {{unit}} (Batas Min: {{min}})",
+    "msgExpired": "Batch {{batch}} sudah kedaluwarsa!",
+    "msgNearExpiry": "Batch {{batch}} kedaluwarsa dalam {{days}} hari!"
   },
   "dashboard": {
     "title": "Ikhtisar",

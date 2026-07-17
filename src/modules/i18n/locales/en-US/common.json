@@ -64,7 +64,14 @@
     "systemSettings": "System Settings",
     "alertsTitle": "Alerts & Notifications",
     "emptyAlertsCombined": "All stock & batches are safe.",
-    "viewAllAlerts": "View All Alerts"
+    "viewAllAlerts": "View All Alerts",
+    "badgeOutOfStock": "Empty",
+    "badgeLowStock": "Low",
+    "badgeExpiry": "Expiry",
+    "msgOutOfStock": "Out of Stock! (Min: {{min}} {{unit}})",
+    "msgLowStock": "Low Stock: {{stock}} {{unit}} left (Min: {{min}})",
+    "msgExpired": "Batch {{batch}} has expired!",
+    "msgNearExpiry": "Batch {{batch}} expires in {{days}} days!"
   },
   "dashboard": {
     "title": "Overview",
