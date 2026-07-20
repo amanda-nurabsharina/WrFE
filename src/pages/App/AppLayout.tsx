@@ -139,8 +139,6 @@ export const AppLayout = () => {
 
   // --- Menu Group Definitions ---
   const menuGroups = React.useMemo(() => {
-    const pathname = window.location.pathname;
-
     return [
       {
         key: "masterData",

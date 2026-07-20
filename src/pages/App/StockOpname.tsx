@@ -2,8 +2,8 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TStockTransaction, TInventoryBatch } from "../../api/ims.service";
 import { useToast } from "../../components/ui";
-import { showClearErrorToast } from "../../utils";
-import { ShieldCheck, History, Check, AlertTriangle } from "lucide-react";
+import { showClearErrorToast, downloadExcelCSV } from "../../utils";
+import { ShieldCheck, History, Check, AlertTriangle, Download } from "lucide-react";
 
 export const StockOpname = () => {
   const [batchId, setBatchId] = React.useState("");
@@ -19,6 +19,28 @@ export const StockOpname = () => {
 
   const batches = batchesResp?.data?.data || [];
   const recentTransactions = txsResp?.data?.data || [];
+
+  const downloadCSV = () => {
+    if (recentTransactions.length === 0) return;
+
+    const headers = ["Tanggal", "Ref Opname", "Nama Barang", "Kode Barang", "Batch #", "Auditor", "Discrepancy Qty", "Keterangan / Alasan"];
+    const rows = recentTransactions.map((tx: TStockTransaction) => {
+      const discrepancy = tx.qty;
+      const desc = tx.description || "";
+      return [
+        new Date(tx.created_at || "").toLocaleString("id-ID"),
+        tx.reference_no,
+        tx.batch?.product?.name || "",
+        tx.batch?.product?.code || "",
+        tx.batch?.batch_number || "",
+        tx.user?.name || "System",
+        discrepancy === 0 ? "0 (Match)" : discrepancy > 0 ? `+${discrepancy}` : discrepancy,
+        desc
+      ];
+    });
+
+    downloadExcelCSV("Laporan_Stock_Opname.csv", headers, rows);
+  };
 
   const selectedBatch = batches.find((b: TInventoryBatch) => b.id === batchId);
 
@@ -224,10 +246,20 @@ export const StockOpname = () => {
 
         {/* Right Column: History log list */}
         <div className="lg:col-span-7 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm flex flex-col">
-          <h3 className="text-sm font-bold text-zinc-800 dark:text-white flex items-center gap-2 mb-4 border-b border-zinc-100 dark:border-zinc-850 pb-2">
-            <History className="h-5 w-5 text-indigo-500" />
-            Histori Audit & Adjustment Stock Opname
-          </h3>
+          <div className="flex items-center justify-between gap-4 mb-4 border-b border-zinc-100 dark:border-zinc-850 pb-2">
+            <h3 className="text-sm font-bold text-zinc-800 dark:text-white flex items-center gap-2">
+              <History className="h-5 w-5 text-indigo-500" />
+              Histori Audit & Adjustment Stock Opname
+            </h3>
+            <button
+              onClick={downloadCSV}
+              disabled={recentTransactions.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Excel / CSV
+            </button>
+          </div>
 
           {isTxLoading ? (
             <div className="text-center py-8 text-sm text-zinc-500">Loading history logs...</div>

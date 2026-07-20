@@ -42,6 +42,7 @@ export type TPurchaseOrderItem = {
   qty: number;
   received_qty: number;
   price: number;
+  unit?: string;
 };
 
 export type TPurchaseOrder = {
@@ -72,6 +73,7 @@ export type TSalesOrder = {
   customer?: TCustomer;
   order_date: string;
   status: string; // draft, pending_b3_approval, approved, partially_shipped, shipped
+  payment_status?: string;
   items?: TSalesOrderItem[];
   created_at?: string;
 };
@@ -137,6 +139,12 @@ export type TStockTransaction = {
   reference_no: string;
   user?: { name: string; email: string };
   selling_price?: number;
+  destination?: string;
+  description?: string;
+  supplier_id?: string;
+  supplier?: TSupplier;
+  proof_document?: string;
+  status?: string;
   created_at: string;
 };
 
@@ -195,6 +203,26 @@ class IMSService {
   async createOutward(payload: any) {
     return handleAsync<any, { data: TStockTransaction[] }>(() =>
       apiService.post("inventory/out", payload)
+    );
+  }
+
+  async updateTransaction(id: string, payload: any) {
+    return handleAsync<any, { data: TStockTransaction }>(() =>
+      apiService.put(`inventory/transactions/${id}`, payload)
+    );
+  }
+
+  async completeTransaction(id: string, proofDocument?: string) {
+    return handleAsync<any, { data: TStockTransaction }>(() =>
+      apiService.put(`inventory/transactions/${id}/complete`, { proof_document: proofDocument })
+    );
+  }
+
+  async uploadFile(file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    return handleAsync<any, { data: string }>(() =>
+      apiService.post("upload", undefined, { body: formData } as any)
     );
   }
 
@@ -390,6 +418,12 @@ class IMSService {
   async approveSalesOrder(id: string) {
     return handleAsync<any, { data: TSalesOrder }>(() =>
       apiService.put(`orders/so/${id}/approve`, {})
+    );
+  }
+
+  async updateSalesOrderPaymentStatus(id: string, paymentStatus: string) {
+    return handleAsync<any, { data: TSalesOrder }>(() =>
+      apiService.patch(`orders/so/${id}/payment`, { payment_status: paymentStatus })
     );
   }
 

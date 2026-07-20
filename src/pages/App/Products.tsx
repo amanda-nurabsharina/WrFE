@@ -33,7 +33,7 @@ const ProductBatchesView = ({ productId, unit }: { productId: string; unit: stri
         {t("products.activeBatchesTitle")}
       </div>
       <div className="grid gap-2 grid-cols-1 sm:grid-cols-2">
-        {batches.map((b: any, idx: number) => {
+        {batches.map((b: any) => {
           const activeBatches = batches.filter((x: any) => x.status === "active");
           const isFirstActive = activeBatches.length > 0 && activeBatches[0].id === b.id;
           const isLastActive = activeBatches.length > 1 && activeBatches[activeBatches.length - 1].id === b.id;

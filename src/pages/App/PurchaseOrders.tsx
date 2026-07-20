@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TPurchaseOrder } from "../../api/ims.service";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
-import { FileSpreadsheet, Plus, Check, ChevronDown, ChevronUp, Layers } from "lucide-react";
+import { FileSpreadsheet, Plus, Check, ChevronDown, ChevronUp, Layers, Printer, Trash } from "lucide-react";
 import { usePermission } from "../../hooks/usePermission";
 
 export const PurchaseOrders = () => {
@@ -11,8 +11,8 @@ export const PurchaseOrders = () => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [supplierId, setSupplierId] = React.useState("");
   const [orderDate, setOrderDate] = React.useState(new Date().toISOString().slice(0, 10));
-  const [items, setItems] = React.useState<{ product_id: string; qty: number; price: number }[]>([
-    { product_id: "", qty: 1, price: 0 }
+  const [items, setItems] = React.useState<{ product_id: string; qty: number; price: number; unit: string }[]>([
+    { product_id: "", qty: 1, price: 0, unit: "" }
   ]);
   const [expandedPoId, setExpandedPoId] = React.useState<string | null>(null);
 
@@ -43,7 +43,7 @@ export const PurchaseOrders = () => {
       setSupplierId(supplier);
       const prod = products.find((p: any) => p.id === product);
       const price = prod ? (prod.purchase_price ?? 0) : 0;
-      setItems([{ product_id: product, qty: Number(qty), price: price }]);
+      setItems([{ product_id: product, qty: Number(qty), price: price, unit: prod?.unit || "" }]);
       setIsOpen(true);
       
       const newurl = window.location.protocol + "//" + window.location.host + window.location.pathname;
@@ -83,14 +83,114 @@ export const PurchaseOrders = () => {
     }
   });
 
+  const handlePrintPO = (po: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const itemsRows = po.items?.map((item: any) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.product?.code} - ${item.product?.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${item.qty} ${item.unit || item.product?.unit || ""}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">Rp ${item.price?.toLocaleString("id-ID")}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">Rp ${(item.qty * item.price)?.toLocaleString("id-ID")}</td>
+      </tr>
+    `).join("") || "";
+
+    const total = po.items?.reduce((sum: number, item: any) => sum + (item.qty * item.price), 0) || 0;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Purchase Order - ${po.po_number}</title>
+          <style>
+            body { font-family: sans-serif; color: #333; margin: 40px; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; }
+            .info-section { display: flex; justify-content: space-between; margin-top: 30px; }
+            .info-block { width: 45%; }
+            .info-block h3 { margin-bottom: 5px; font-size: 14px; text-transform: uppercase; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+            th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-size: 12px; text-transform: uppercase; }
+            .totals { margin-top: 30px; text-align: right; font-size: 16px; font-weight: bold; }
+            .signature { margin-top: 60px; display: flex; justify-content: space-between; }
+            .sig-line { border-top: 1px solid #333; width: 200px; text-align: center; margin-top: 60px; padding-top: 5px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">PURCHASE ORDER</div>
+              <div style="font-size: 14px; margin-top: 5px; font-weight: bold;">No: ${po.po_number}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; font-size: 18px;">WAREHOUSE IMS</div>
+              <div style="font-size: 12px; color: #666;">Kawasan Industri Jababeka, Bekasi</div>
+            </div>
+          </div>
+          
+          <div class="info-section">
+            <div class="info-block">
+              <h3>Supplier Info</h3>
+              <strong>${po.supplier?.name || "-"}</strong><br/>
+              Phone: ${po.supplier?.phone || "-"}<br/>
+              Email: ${po.supplier?.email || "-"}<br/>
+              Address: ${po.supplier?.address || "-"}
+            </div>
+            <div class="info-block" style="text-align: right;">
+              <h3>Order Info</h3>
+              Order Date: ${new Date(po.order_date).toLocaleDateString("id-ID")}<br/>
+              Status: <span style="text-transform: uppercase; font-weight: bold;">${po.status}</span>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Product Description</th>
+                <th style="text-align: right;">Quantity</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            Total Amount: Rp ${total.toLocaleString("id-ID")}
+          </div>
+
+          <div class="signature">
+            <div>
+              Authorized Signature
+              <div class="sig-line">Purchasing Dept</div>
+            </div>
+            <div style="text-align: right;">
+              Supplier Confirmation
+              <div class="sig-line">Supplier Rep</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const resetForm = () => {
     setSupplierId("");
     setOrderDate(new Date().toISOString().slice(0, 10));
-    setItems([{ product_id: "", qty: 1, price: 0 }]);
+    setItems([{ product_id: "", qty: 1, price: 0, unit: "" }]);
   };
 
   const handleAddItem = () => {
-    setItems([...items, { product_id: "", qty: 1, price: 0 }]);
+    setItems([...items, { product_id: "", qty: 1, price: 0, unit: "" }]);
   };
 
   const handleRemoveItem = (index: number) => {
@@ -107,6 +207,7 @@ export const PurchaseOrders = () => {
       const prod = products.find((p: any) => p.id === value);
       if (prod) {
         updated[index].price = prod.purchase_price ?? 0;
+        updated[index].unit = prod.unit ?? "";
       }
     }
     setItems(updated);
@@ -223,6 +324,16 @@ export const PurchaseOrders = () => {
                   </div>
 
                   <div className="flex items-center gap-4 self-end sm:self-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePrintPO(po);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-150 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-lg text-[10px] font-bold transition-all"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      Print PO
+                    </button>
                     {po.status === "draft" && isApprover && (
                       <button
                         onClick={(e) => {
@@ -266,10 +377,12 @@ export const PurchaseOrders = () => {
                                 <div className="font-bold text-zinc-900 dark:text-white">{item.product?.name}</div>
                                 <div className="text-[10px] text-zinc-450 font-normal">{item.product?.code} ({item.product?.unit})</div>
                               </td>
-                              <td className="py-3 px-4 text-right font-bold text-zinc-850 dark:text-white">{item.qty}</td>
+                              <td className="py-3 px-4 text-right font-bold text-zinc-850 dark:text-white">
+                                {item.qty} {item.unit || item.product?.unit || ""}
+                              </td>
                               <td className="py-3 px-4 text-right font-bold">
                                 <span className={item.received_qty === item.qty ? "text-emerald-600 dark:text-emerald-400" : "text-amber-600 dark:text-amber-400"}>
-                                  {item.received_qty}
+                                  {item.received_qty} {item.unit || item.product?.unit || ""}
                                 </span>
                               </td>
                               <td className="py-3 px-4 text-right font-mono">Rp {item.price?.toLocaleString("id-ID")}</td>
@@ -287,26 +400,24 @@ export const PurchaseOrders = () => {
             );
           })
         )}
-      </div>
-
-      {/* Create Modal Form */}
+      </div>      {/* Create Modal Form */}
       {isOpen && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-[9999] animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+          <div className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
             <div className="px-6 py-4 border-b border-zinc-150 dark:border-zinc-800 flex items-center justify-between">
-              <h3 className="text-md font-bold text-zinc-900 dark:text-white">Create Purchase Order</h3>
+              <h3 className="text-sm font-bold text-zinc-900 dark:text-white">Create Purchase Order</h3>
               <button onClick={() => setIsOpen(false)} className="text-zinc-400 hover:text-zinc-600 text-lg font-bold">&times;</button>
             </div>
-            <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[80vh] overflow-y-auto">
               
               <div className="grid gap-4 grid-cols-2">
                 <div className="grid gap-1">
-                  <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Supplier *</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Supplier *</label>
                   <select
                     required
                     value={supplierId}
                     onChange={(e) => setSupplierId(e.target.value)}
-                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-950 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                   >
                     <option value="">Select Supplier</option>
                     {suppliers.map((sup: any) => (
@@ -315,19 +426,19 @@ export const PurchaseOrders = () => {
                   </select>
                 </div>
                 <div className="grid gap-1">
-                  <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Order Date *</label>
+                  <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Order Date *</label>
                   <input
                     type="date"
                     required
                     value={orderDate}
                     onChange={(e) => setOrderDate(e.target.value)}
-                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none"
+                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
                   />
                 </div>
               </div>
 
               {/* Items List */}
-              <div className="space-y-2 border-t border-zinc-100 dark:border-zinc-850 pt-4">
+              <div className="space-y-3 border-t border-zinc-150 dark:border-zinc-850 pt-4">
                 <div className="flex justify-between items-center mb-2">
                   <h4 className="text-xs font-bold text-zinc-700 dark:text-zinc-300">Products List</h4>
                   <button
@@ -335,67 +446,102 @@ export const PurchaseOrders = () => {
                     onClick={handleAddItem}
                     className="text-[10px] font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 flex items-center gap-1"
                   >
-                    + Add Product Row
+                    <Plus className="h-3 w-3" /> Add Product Row
                   </button>
+                </div>                <div className="space-y-3">
+                  {items.map((item, idx) => {
+                    const selectedProd = products.find((p: any) => p.id === item.product_id);
+                    const baseUnit = selectedProd?.unit || "Pcs";
+                    const pkgUnit = selectedProd?.packaging_unit?.name;
+
+                    return (
+                      <div key={idx} className="relative bg-zinc-50 dark:bg-zinc-950 p-4 rounded-xl border border-zinc-200 dark:border-zinc-800 flex flex-wrap md:flex-nowrap gap-3 items-end">
+                        {/* Product Selector */}
+                        <div className="flex-1 min-w-[200px] grid gap-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Product *</label>
+                          <select
+                            required
+                            value={item.product_id}
+                            onChange={(e) => handleItemChange(idx, "product_id", e.target.value)}
+                            className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full"
+                          >
+                            <option value="">Select Product</option>
+                            {products.map((prod: any) => (
+                              <option key={prod.id} value={prod.id}>{prod.code} - {prod.name}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="w-24 grid gap-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Quantity *</label>
+                          <input
+                            type="number"
+                            min="1"
+                            required
+                            value={item.qty}
+                            onChange={(e) => handleItemChange(idx, "qty", Number(e.target.value))}
+                            className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full"
+                          />
+                        </div>
+
+                        {/* Unit */}
+                        <div className="w-32 grid gap-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Unit *</label>
+                          <select
+                            value={item.unit}
+                            onChange={(e) => handleItemChange(idx, "unit", e.target.value)}
+                            className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full"
+                          >
+                            <option value="">Select Unit</option>
+                            <option value={baseUnit}>{baseUnit} (Base)</option>
+                            {pkgUnit && <option value={pkgUnit}>{pkgUnit} (Pkg)</option>}
+                            <option value="Box">Box</option>
+                            <option value="Kardus">Kardus</option>
+                            <option value="Botol">Botol</option>
+                            <option value="Lusin">Lusin</option>
+                            <option value="Pcs">Pcs</option>
+                            <option value="Jerigen">Jerigen</option>
+                            <option value="Drum">Drum</option>
+                          </select>
+                        </div>
+
+                        {/* Purchase Price */}
+                        <div className="w-32 grid gap-1">
+                          <label className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">Price (IDR) *</label>
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            value={item.price}
+                            onChange={(e) => handleItemChange(idx, "price", Number(e.target.value))}
+                            className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-800 rounded-lg bg-white dark:bg-zinc-900 text-zinc-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all w-full"
+                          />
+                        </div>
+
+                        {/* Remove Button */}
+                        <div className="flex items-center justify-end md:justify-center">
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveItem(idx)}
+                            disabled={items.length === 1}
+                            className="p-2 bg-rose-50 hover:bg-rose-100 dark:bg-rose-950/20 dark:hover:bg-rose-900/40 text-rose-600 rounded-lg disabled:opacity-30 transition-all flex items-center justify-center h-9 w-9 border border-rose-100 dark:border-rose-900/30"
+                            title="Remove item"
+                          >
+                            <Trash className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-
-                {items.map((item, idx) => (
-                  <div key={idx} className="flex gap-2 items-end bg-zinc-50 dark:bg-zinc-955 p-3 rounded-lg border border-zinc-150 dark:border-zinc-850">
-                    <div className="flex-1 grid gap-1">
-                      <label className="text-[9px] text-zinc-400">Product</label>
-                      <select
-                        value={item.product_id}
-                        onChange={(e) => handleItemChange(idx, "product_id", e.target.value)}
-                        className="px-2 py-1.5 text-xs border border-zinc-250 dark:border-zinc-800 rounded bg-white dark:bg-zinc-900 text-zinc-800 dark:text-black focus:outline-none"
-                      >
-                        <option value="">Select Product</option>
-                        {products.map((prod: any) => (
-                          <option key={prod.id} value={prod.id}>{prod.code} - {prod.name}</option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="w-24 grid gap-1">
-                      <label className="text-[9px] text-zinc-400">Quantity</label>
-                      <input
-                        type="number"
-                        min="1"
-                        required
-                        value={item.qty}
-                        onChange={(e) => handleItemChange(idx, "qty", Number(e.target.value))}
-                        className="px-2 py-1 text-xs border border-zinc-250 dark:border-zinc-800 rounded bg-white dark:bg-zinc-900 text-zinc-800 dark:text-black focus:outline-none"
-                      />
-                    </div>
-
-                    <div className="w-32 grid gap-1">
-                      <label className="text-[9px] text-zinc-400">Purchase Price</label>
-                      <input
-                        type="number"
-                        min="0"
-                        required
-                        value={item.price}
-                        onChange={(e) => handleItemChange(idx, "price", Number(e.target.value))}
-                        className="px-2 py-1 text-xs border border-zinc-250 dark:border-zinc-800 rounded bg-white dark:bg-zinc-900 text-zinc-800 dark:text-black focus:outline-none"
-                      />
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(idx)}
-                      disabled={items.length === 1}
-                      className="p-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded disabled:opacity-50"
-                    >
-                      &times;
-                    </button>
-                  </div>
-                ))}
               </div>
 
-              <div className="flex gap-3 justify-end pt-4 border-t border-zinc-100 dark:border-zinc-850">
+              <div className="flex gap-3 justify-end pt-4 border-t border-zinc-150 dark:border-zinc-850">
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-855 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                  className="px-4 py-2 border border-zinc-200 dark:border-zinc-800 rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
                 >
                   Cancel
                 </button>

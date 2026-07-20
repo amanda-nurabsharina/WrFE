@@ -77,3 +77,28 @@ export function truncateText(
       return text.slice(0, maxLength - ellipsisLength) + ellipsis;
   }
 }
+
+export const downloadExcelCSV = (filename: string, headers: string[], rows: any[][]) => {
+  const BOM = "\uFEFF";
+  const csvContent = BOM + [
+    headers.join(","),
+    ...rows.map(row => 
+      row.map(val => {
+        if (val === null || val === undefined) return '""';
+        const str = String(val).replace(/"/g, '""');
+        return `"${str}"`;
+      }).join(",")
+    )
+  ].join("\n");
+
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  link.style.visibility = "hidden";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};

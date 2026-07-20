@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TSalesOrder } from "../../api/ims.service";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
-import { ShoppingCart, Plus, Check, ChevronDown, ChevronUp, AlertTriangle, Layers } from "lucide-react";
+import { ShoppingCart, Plus, Check, ChevronDown, ChevronUp, AlertTriangle, Layers, Printer } from "lucide-react";
 import { usePermission } from "../../hooks/usePermission";
 
 export const SalesOrders = () => {
@@ -66,6 +66,126 @@ export const SalesOrders = () => {
       showClearErrorToast(err, toast, "Failed to approve SO");
     }
   });
+
+  const updatePaymentMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: string }) => imsService.updateSalesOrderPaymentStatus(id, status),
+    onSuccess: (res: any) => {
+      if (res?.error) {
+        showClearErrorToast(res.error, toast, "Failed to update payment status");
+        return;
+      }
+      queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+      toast({ title: "Payment status updated successfully", variant: "default" });
+    },
+    onError: (err: any) => {
+      showClearErrorToast(err, toast, "Failed to update payment status");
+    }
+  });
+
+  const handleUpdatePaymentStatus = (id: string, status: string) => {
+    updatePaymentMutation.mutate({ id, status });
+  };
+
+  const handlePrintSO = (so: any) => {
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    const itemsRows = so.items?.map((item: any) => `
+      <tr>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd;">${item.product?.code} - ${item.product?.name}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">${item.qty} ${item.product?.unit || ""}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">Rp ${item.price?.toLocaleString("id-ID")}</td>
+        <td style="padding: 10px; border-bottom: 1px solid #ddd; text-align: right;">Rp ${(item.qty * item.price)?.toLocaleString("id-ID")}</td>
+      </tr>
+    `).join("") || "";
+
+    const total = so.items?.reduce((sum: number, item: any) => sum + (item.qty * item.price), 0) || 0;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Sales Order - ${so.so_number}</title>
+          <style>
+            body { font-family: sans-serif; color: #333; margin: 40px; }
+            .header { display: flex; justify-content: space-between; border-bottom: 2px solid #333; padding-bottom: 20px; }
+            .title { font-size: 24px; font-weight: bold; }
+            .info-section { display: flex; justify-content: space-between; margin-top: 30px; }
+            .info-block { width: 45%; }
+            .info-block h3 { margin-bottom: 5px; font-size: 14px; text-transform: uppercase; color: #666; }
+            table { width: 100%; border-collapse: collapse; margin-top: 40px; }
+            th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; font-size: 12px; text-transform: uppercase; }
+            .totals { margin-top: 30px; text-align: right; font-size: 16px; font-weight: bold; }
+            .signature { margin-top: 60px; display: flex; justify-content: space-between; }
+            .sig-line { border-top: 1px solid #333; width: 200px; text-align: center; margin-top: 60px; padding-top: 5px; font-size: 12px; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="title">SALES ORDER</div>
+              <div style="font-size: 14px; margin-top: 5px; font-weight: bold;">No: ${so.so_number}</div>
+            </div>
+            <div style="text-align: right;">
+              <div style="font-weight: bold; font-size: 18px;">WAREHOUSE IMS</div>
+              <div style="font-size: 12px; color: #666;">Kawasan Industri Jababeka, Bekasi</div>
+            </div>
+          </div>
+          
+          <div class="info-section">
+            <div class="info-block">
+              <h3>Customer Info</h3>
+              <strong>${so.customer?.name || "-"}</strong><br/>
+              Phone: ${so.customer?.phone || "-"}<br/>
+              Email: ${so.customer?.email || "-"}<br/>
+              Address: ${so.customer?.address || "-"}
+            </div>
+            <div class="info-block" style="text-align: right;">
+              <h3>Order Info</h3>
+              Order Date: ${new Date(so.order_date).toLocaleDateString("id-ID")}<br/>
+              Status: <span style="text-transform: uppercase; font-weight: bold;">${so.status}</span><br/>
+              Payment Status: <span style="text-transform: uppercase; font-weight: bold;">${so.payment_status || "unpaid"}</span>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Product Description</th>
+                <th style="text-align: right;">Quantity</th>
+                <th style="text-align: right;">Unit Price</th>
+                <th style="text-align: right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+
+          <div class="totals">
+            Total Amount: Rp ${total.toLocaleString("id-ID")}
+          </div>
+
+          <div class="signature">
+            <div>
+              Authorized Signature
+              <div class="sig-line">Sales Coordinator</div>
+            </div>
+            <div style="text-align: right;">
+              Customer Acceptance
+              <div class="sig-line">Customer Rep</div>
+            </div>
+          </div>
+
+          <script>
+            window.onload = function() {
+              window.print();
+            }
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const resetForm = () => {
     setCustomerId("");
@@ -229,6 +349,15 @@ export const SalesOrders = () => {
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getStatusBadgeClass(so.status)}`}>
                         {so.status === "pending_b3_approval" ? "B3 Approval Required" : so.status}
                       </span>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                        so.payment_status === "paid"
+                          ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400"
+                          : so.payment_status === "partially_paid"
+                          ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400"
+                          : "bg-rose-100 text-rose-700 dark:bg-rose-955 dark:text-rose-300"
+                      }`}>
+                        {so.payment_status || "unpaid"}
+                      </span>
                     </div>
                     <p className="text-xs text-zinc-500 dark:text-zinc-400">
                       Customer: <strong className="text-zinc-700 dark:text-zinc-200">{so.customer?.name}</strong> • Price Tier: <span className="font-bold text-indigo-500 uppercase text-[10px]">{so.customer?.price_tier || "distributor"}</span> • Date: {new Date(so.order_date).toLocaleDateString("id-ID")}
@@ -236,6 +365,28 @@ export const SalesOrders = () => {
                   </div>
 
                   <div className="flex items-center gap-4 self-end sm:self-center">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePrintSO(so);
+                      }}
+                      className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-150 hover:bg-zinc-200 text-zinc-700 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:text-zinc-300 rounded-lg text-[10px] font-bold transition-all"
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      Print SO
+                    </button>
+                    <select
+                      value={so.payment_status || "unpaid"}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => {
+                        handleUpdatePaymentStatus(so.id, e.target.value);
+                      }}
+                      className="px-2 py-1 text-[10px] font-bold border border-zinc-200 dark:border-zinc-800 rounded bg-white dark:bg-zinc-950 text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                    >
+                      <option value="unpaid">Unpaid</option>
+                      <option value="partially_paid">Partially Paid</option>
+                      <option value="paid">Paid</option>
+                    </select>
                     {(so.status === "draft" || so.status === "pending_b3_approval") && isApprover && (
                       <button
                         onClick={(e) => {
