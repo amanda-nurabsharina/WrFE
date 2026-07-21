@@ -1,9 +1,11 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TInventoryBatch } from "../../api/ims.service";
+import { barcodeService } from "../../api/barcode.service";
+import BarcodeScanner from "../../components/barcode/BarcodeScanner";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast, downloadExcelCSV } from "../../utils";
-import { ArrowUpRight, Check, History, Layers, Info, Download, Edit, CheckCircle, UploadCloud } from "lucide-react";
+import { ArrowUpRight, Check, History, Layers, Info, Download, Edit, CheckCircle, UploadCloud, Barcode } from "lucide-react";
 
 export const GoodsOut = () => {
   const apiOrigin = new URL(import.meta.env.VITE_API_URL || "http://127.0.0.1:3000").origin;
@@ -24,6 +26,11 @@ export const GoodsOut = () => {
   // Modals state
   const [editingTx, setEditingTx] = React.useState<any | null>(null);
   const [completingTx, setCompletingTx] = React.useState<any | null>(null);
+  const [activePickingTx, setActivePickingTx] = React.useState<any | null>(null);
+  const [scannedLoc, setScannedLoc] = React.useState(false);
+  const [scannedBatch, setScannedBatch] = React.useState(false);
+  const [scannedLocBarcode, setScannedLocBarcode] = React.useState("");
+  const [scannedBatchBarcode, setScannedBatchBarcode] = React.useState("");
 
   // Edit fields
   const [editQty, setEditQty] = React.useState(1);
@@ -32,6 +39,51 @@ export const GoodsOut = () => {
   const [editDestination, setEditDestination] = React.useState("");
   const [editDescription, setEditDescription] = React.useState("");
   const [editProof, setEditProof] = React.useState("");
+
+  const qtyInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleProductBarcodeScan = async (barcode: string) => {
+    try {
+      const res = await barcodeService.lookupBarcode(barcode);
+      if (res.error || !res.data) {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Barcode not found"));
+        }
+        toast({ title: "Barcode Tidak Dikenal", description: (res.error as any)?.message || "Not found", variant: "destructive" });
+        return;
+      }
+
+      const { registry, entity } = (res.data as any);
+      if (registry.type !== "PRODUCT") {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Scan product barcode"));
+        }
+        toast({ title: "Harap Scan Barcode Produk", description: "Di halaman ini Anda harus memindai barcode Master Produk untuk dimasukkan.", variant: "default" });
+        return;
+      }
+
+      setProductId(entity.id);
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Product loaded"));
+      }
+
+      toast({ title: "Produk Ditemukan", description: `Produk: ${entity.name}`, variant: "default" });
+
+      // Focus on Qty input
+      setTimeout(() => {
+        if (qtyInputRef.current) {
+          qtyInputRef.current.focus();
+          qtyInputRef.current.select();
+        }
+      }, 150);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   const [fefoPreview, setFefoPreview] = React.useState<{ batch: TInventoryBatch; allocated: number }[]>([]);
 
@@ -308,6 +360,9 @@ export const GoodsOut = () => {
 
   return (
     <div className="space-y-6">
+      {!activePickingTx && (
+        <BarcodeScanner mode="outward" onScan={handleProductBarcodeScan} />
+      )}
       {/* Title */}
       <div>
         <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
@@ -399,6 +454,7 @@ export const GoodsOut = () => {
                 <div className="grid gap-1">
                   <label>Quantity Keluar</label>
                   <input
+                    ref={qtyInputRef}
                     type="number"
                     min="1"
                     required
@@ -683,6 +739,21 @@ export const GoodsOut = () => {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          {tx.status === "picking" && (
+                            <button
+                              onClick={() => {
+                                setActivePickingTx(tx);
+                                setScannedLoc(false);
+                                setScannedBatch(false);
+                                setScannedLocBarcode("");
+                                setScannedBatchBarcode("");
+                              }}
+                              title="Verify Guided Picking"
+                              className="p-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 rounded transition-all"
+                            >
+                              <Barcode className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           {tx.status === "draft" && (
                             <button
                               onClick={() => {
@@ -698,7 +769,7 @@ export const GoodsOut = () => {
                           <button
                             onClick={() => handleEditClick(tx)}
                             title="Edit / Koreksi Data"
-                            className="p-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-650 rounded transition-all"
+                            className="p-1 bg-zinc-100 hover:bg-zinc-200 text-zinc-655 rounded transition-all"
                           >
                             <Edit className="h-3.5 w-3.5" />
                           </button>
@@ -919,6 +990,167 @@ export const GoodsOut = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {activePickingTx && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <BarcodeScanner
+            mode="picking"
+            onScan={async (barcode) => {
+              // 1. Check if scanned location
+              if (barcode === activePickingTx.batch?.location?.barcode) {
+                setScannedLocBarcode(barcode);
+                setScannedLoc(true);
+                if ("speechSynthesis" in window) {
+                  window.speechSynthesis.cancel();
+                  window.speechSynthesis.speak(new SpeechSynthesisUtterance("Location verified"));
+                }
+                toast({ title: "Lokasi Terverifikasi", description: `Rak: ${activePickingTx.batch?.location?.rack}`, variant: "default" });
+              } 
+              // 2. Check if scanned batch
+              else if (barcode === activePickingTx.batch?.barcode) {
+                setScannedBatchBarcode(barcode);
+                setScannedBatch(true);
+                if ("speechSynthesis" in window) {
+                  window.speechSynthesis.cancel();
+                  window.speechSynthesis.speak(new SpeechSynthesisUtterance("Batch verified"));
+                }
+                toast({ title: "Batch Terverifikasi", description: `Batch Number: ${activePickingTx.batch?.batch_number}`, variant: "default" });
+              } 
+              // 3. Fallback
+              else {
+                if ("speechSynthesis" in window) {
+                  window.speechSynthesis.cancel();
+                  window.speechSynthesis.speak(new SpeechSynthesisUtterance("Incorrect scan"));
+                }
+                toast({ title: "Verifikasi Gagal", description: "Barcode tidak cocok dengan data alokasi picking list ini.", variant: "destructive" });
+              }
+            }}
+          />
+
+          <div className="w-full max-w-md bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-150">
+            <div className="px-6 py-4 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
+              <h3 className="font-bold text-zinc-900 dark:text-zinc-100 text-sm">
+                Guided Picking Verification
+              </h3>
+              <button 
+                onClick={() => setActivePickingTx(null)}
+                className="text-zinc-400 hover:text-zinc-650 dark:hover:text-zinc-250 font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Product and Qty details */}
+              <div className="bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-150 dark:border-indigo-900/50 p-4 rounded-xl">
+                <span className="block text-[9px] font-black uppercase tracking-wider text-indigo-500 mb-1">
+                  Item to Pick
+                </span>
+                <h4 className="font-bold text-zinc-800 dark:text-zinc-100 text-sm">
+                  {activePickingTx.batch?.product?.name}
+                </h4>
+                <p className="text-xs text-zinc-500 mt-1">
+                  Quantity: <span className="font-black text-indigo-650 dark:text-indigo-400">{activePickingTx.qty} {activePickingTx.batch?.product?.unit}</span>
+                </p>
+              </div>
+
+              {/* Steps */}
+              <div className="space-y-4">
+                {/* Location verification step */}
+                <div className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                  scannedLoc 
+                    ? "bg-emerald-50/30 border-emerald-300 dark:bg-emerald-950/10 dark:border-emerald-900/30"
+                    : "bg-zinc-50 dark:bg-zinc-955 border-zinc-150 dark:border-zinc-800"
+                }`}>
+                  <div className="space-y-1">
+                    <span className="block text-[8px] font-black uppercase text-zinc-400 tracking-wider">
+                      Step 1: Go to Rack Location
+                    </span>
+                    <span className="font-bold text-zinc-800 dark:text-zinc-200 text-xs">
+                      {activePickingTx.batch?.location?.rack}
+                    </span>
+                    <span className="block text-[9px] font-mono text-zinc-450 mt-0.5">
+                      Target Barcode: {activePickingTx.batch?.location?.barcode}
+                    </span>
+                  </div>
+                  <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase ${
+                    scannedLoc ? "bg-emerald-100 text-emerald-800" : "bg-indigo-100 text-indigo-800 animate-pulse"
+                  }`}>
+                    {scannedLoc ? "VERIFIED" : "SCAN LOCATION"}
+                  </span>
+                </div>
+
+                {/* Batch verification step */}
+                <div className={`p-4 rounded-xl border flex items-center justify-between transition-all ${
+                  scannedBatch 
+                    ? "bg-emerald-50/30 border-emerald-300 dark:bg-emerald-950/10 dark:border-emerald-900/30"
+                    : "bg-zinc-50 dark:bg-zinc-955 border-zinc-150 dark:border-zinc-800"
+                }`}>
+                  <div className="space-y-1">
+                    <span className="block text-[8px] font-black uppercase text-zinc-400 tracking-wider">
+                      Step 2: Confirm Batch Lot
+                    </span>
+                    <span className="font-bold text-zinc-800 dark:text-zinc-200 text-xs">
+                      Batch: {activePickingTx.batch?.batch_number}
+                    </span>
+                    <span className="block text-[9px] font-mono text-zinc-450 mt-0.5">
+                      Target Barcode: {activePickingTx.batch?.barcode}
+                    </span>
+                  </div>
+                  <span className={`px-2 py-1 rounded-lg text-[9px] font-black uppercase ${
+                    scannedBatch ? "bg-emerald-100 text-emerald-800" : "bg-indigo-100 text-indigo-800 animate-pulse"
+                  }`}>
+                    {scannedBatch ? "VERIFIED" : "SCAN BATCH"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="px-6 py-4 bg-zinc-50 dark:bg-zinc-955 border-t border-zinc-100 dark:border-zinc-800 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setActivePickingTx(null)}
+                className="px-4 py-2 border rounded-lg text-xs font-semibold text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                disabled={!scannedLoc || !scannedBatch}
+                onClick={async () => {
+                  try {
+                    const res = await barcodeService.confirmPick(activePickingTx.id, {
+                      batch_barcode: scannedBatchBarcode,
+                      location_barcode: scannedLocBarcode,
+                    });
+                    if (res.error) {
+                      toast({ title: "Konfirmasi Gagal", description: (res.error as any)?.message, variant: "destructive" });
+                      return;
+                    }
+
+                    if ("speechSynthesis" in window) {
+                      window.speechSynthesis.cancel();
+                      window.speechSynthesis.speak(new SpeechSynthesisUtterance("Picking confirmed"));
+                    }
+                    toast({ title: "Picking Berhasil Terverifikasi", variant: "default" });
+                    
+                    setActivePickingTx(null);
+                    queryClient.invalidateQueries({ queryKey: ["transactions", "out"] });
+                    queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
+                    queryClient.invalidateQueries({ queryKey: ["batches"] });
+                    queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+                  } catch (err: any) {
+                    toast({ title: "Error", description: err.message, variant: "destructive" });
+                  }
+                }}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold disabled:opacity-50 disabled:cursor-not-allowed transition"
+              >
+                Confirm Pick & Dispatch
+              </button>
+            </div>
           </div>
         </div>
       )}

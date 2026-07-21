@@ -1,6 +1,8 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TStockTransaction, TInventoryBatch } from "../../api/ims.service";
+import { barcodeService } from "../../api/barcode.service";
+import BarcodeScanner from "../../components/barcode/BarcodeScanner";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast, downloadExcelCSV } from "../../utils";
 import { ShieldCheck, History, Check, AlertTriangle, Download } from "lucide-react";
@@ -9,9 +11,54 @@ export const StockOpname = () => {
   const [batchId, setBatchId] = React.useState("");
   const [physicalQty, setPhysicalQty] = React.useState<number | "">("");
   const [description, setDescription] = React.useState("");
+  
+  const physicalQtyInputRef = React.useRef<HTMLInputElement>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const handleBarcodeScan = async (barcode: string) => {
+    try {
+      const res = await barcodeService.lookupBarcode(barcode);
+      if (res.error || !res.data) {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Barcode not found"));
+        }
+        toast({ title: "Barcode Tidak Dikenal", description: (res.error as any)?.message || "Not found", variant: "destructive" });
+        return;
+      }
+
+      const { registry, entity } = (res.data as any);
+      if (registry.type !== "BATCH") {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Please scan batch label"));
+        }
+        toast({ title: "Harap Scan Label Batch", description: "Hanya label batch yang dapat diaudit di halaman Stock Opname.", variant: "default" });
+        return;
+      }
+
+      setBatchId(entity.id);
+      
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Batch loaded"));
+      }
+
+      toast({ title: "Batch Ditemukan", description: `Product: ${entity.product?.name} | Batch: ${entity.batch_number}`, variant: "default" });
+
+      // Focus physical quantity input
+      setTimeout(() => {
+        if (physicalQtyInputRef.current) {
+          physicalQtyInputRef.current.focus();
+          physicalQtyInputRef.current.select();
+        }
+      }, 150);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   // Queries
   const { data: batchesResp } = useQuery({ queryKey: ["batches"], queryFn: () => imsService.getBatches() });
@@ -114,6 +161,7 @@ export const StockOpname = () => {
 
   return (
     <div className="space-y-6">
+      <BarcodeScanner mode="opname" onScan={handleBarcodeScan} />
       {/* Title */}
       <div>
         <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
@@ -173,6 +221,7 @@ export const StockOpname = () => {
               <div className="grid gap-1">
                 <label>Jumlah Fisik yang Dihitung (Physical Count)</label>
                 <input
+                  ref={physicalQtyInputRef}
                   type="number"
                   min="0"
                   required

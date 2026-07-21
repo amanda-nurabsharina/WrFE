@@ -2,7 +2,8 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { imsService, TProduct } from "../../api/ims.service";
-import { Plus, Trash2, Search, Package2, Pencil, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, Info } from "lucide-react";
+import { Plus, Trash2, Search, Package2, Pencil, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, Info, Barcode } from "lucide-react";
+import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
 import { usePermission } from "../../hooks/usePermission";
@@ -134,6 +135,7 @@ export const Products = () => {
   const [initialWarehouseID, setInitialWarehouseID] = React.useState("");
 
   const [expandedProductIds, setExpandedProductIds] = React.useState<Record<string, boolean>>({});
+  const [printProduct, setPrintProduct] = React.useState<TProduct | null>(null);
 
   const toggleExpand = (id: string) => {
     setExpandedProductIds(prev => ({ ...prev, [id]: !prev[id] }));
@@ -437,6 +439,13 @@ export const Products = () => {
                       {formatCurrency(prod.price_distributor || 0)}
                     </td>
                     <td className="py-4 px-6 text-center flex items-center justify-center gap-2">
+                      <button
+                        onClick={() => setPrintProduct(prod)}
+                        className="text-emerald-500 hover:text-emerald-600 p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-955/20 rounded-lg transition-colors"
+                        title="Print Barcode"
+                      >
+                        <Barcode className="h-4.5 w-4.5" />
+                      </button>
                       {hasPermission("products", "edit") && (
                         <button
                           onClick={() => handleEditClick(prod)}
@@ -854,6 +863,18 @@ export const Products = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {printProduct && (
+        <BarcodePrintDialog
+          isOpen={!!printProduct}
+          onClose={() => setPrintProduct(null)}
+          barcodeValue={printProduct.barcode || printProduct.code}
+          labelType="PRODUCT"
+          productName={printProduct.name}
+          productCode={printProduct.code}
+          price={printProduct.price_distributor}
+        />
       )}
     </div>
   );

@@ -1,9 +1,12 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
+import { barcodeService } from "../../api/barcode.service";
+import BarcodeScanner from "../../components/barcode/BarcodeScanner";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast, downloadExcelCSV } from "../../utils";
-import { ArrowDownLeft, Plus, History, Info, Download, Edit, CheckCircle, UploadCloud } from "lucide-react";
+import { ArrowDownLeft, Plus, History, Info, Download, Edit, CheckCircle, UploadCloud, Barcode } from "lucide-react";
+import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
 
 export const GoodsIn = () => {
   const apiOrigin = new URL(import.meta.env.VITE_API_URL || "http://127.0.0.1:3000").origin;
@@ -25,6 +28,7 @@ export const GoodsIn = () => {
   // Modals state
   const [editingTx, setEditingTx] = React.useState<any | null>(null);
   const [completingTx, setCompletingTx] = React.useState<any | null>(null);
+  const [printTx, setPrintTx] = React.useState<any | null>(null);
 
   // Edit fields
   const [editQty, setEditQty] = React.useState(1);
@@ -36,6 +40,50 @@ export const GoodsIn = () => {
   const [editLocationId, setEditLocationId] = React.useState("");
   const [editSupplierId, setEditSupplierId] = React.useState("");
   const [editProof, setEditProof] = React.useState("");
+
+  const batchNoInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleBarcodeScan = async (barcode: string) => {
+    try {
+      const res = await barcodeService.lookupBarcode(barcode);
+      if (res.error) {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Barcode not found"));
+        }
+        toast({ title: "Barcode Tidak Dikenal", description: (res.error as any)?.message, variant: "destructive" });
+        return;
+      }
+
+      const { registry, entity } = (res.data as any);
+      if (registry.type !== "PRODUCT") {
+        if ("speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+          window.speechSynthesis.speak(new SpeechSynthesisUtterance("Scan product barcode"));
+        }
+        toast({ title: "Harap Scan Barcode Produk", description: "Di halaman ini Anda harus memindai barcode Master Produk untuk dimasukkan.", variant: "default" });
+        return;
+      }
+
+      setProductId(entity.id);
+
+      if ("speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(new SpeechSynthesisUtterance("Product loaded"));
+      }
+
+      toast({ title: "Produk Ditemukan", description: `Produk: ${entity.name}`, variant: "default" });
+
+      // Focus on Batch Number field
+      setTimeout(() => {
+        if (batchNoInputRef.current) {
+          batchNoInputRef.current.focus();
+        }
+      }, 150);
+    } catch (err: any) {
+      console.error(err);
+    }
+  };
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -272,6 +320,7 @@ export const GoodsIn = () => {
 
   return (
     <div className="space-y-6">
+      <BarcodeScanner mode="receiving" onScan={handleBarcodeScan} />
       {/* Title */}
       <div>
         <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
@@ -391,6 +440,7 @@ export const GoodsIn = () => {
               <div className="grid gap-1">
                 <label>Batch / Lot Number</label>
                 <input
+                  ref={batchNoInputRef}
                   type="text"
                   required
                   placeholder="e.g. LOT-PST-15"
@@ -634,6 +684,15 @@ export const GoodsIn = () => {
                       </td>
                       <td className="py-3 px-4 text-center">
                         <div className="flex items-center justify-center gap-1.5">
+                          {tx.status === "completed" && tx.batch?.barcode && (
+                            <button
+                              onClick={() => setPrintTx(tx)}
+                              title="Cetak Label Batch"
+                              className="p-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 rounded transition-all"
+                            >
+                              <Barcode className="h-3.5 w-3.5" />
+                            </button>
+                          )}
                           {tx.status === "draft" && (
                             <button
                               onClick={() => {
@@ -917,6 +976,19 @@ export const GoodsIn = () => {
             </form>
           </div>
         </div>
+      )}
+
+      {printTx && (
+        <BarcodePrintDialog
+          isOpen={!!printTx}
+          onClose={() => setPrintTx(null)}
+          barcodeValue={printTx.batch?.barcode || ""}
+          labelType="BATCH"
+          productName={printTx.batch?.product?.name || ""}
+          productCode={printTx.batch?.product?.code || ""}
+          batchNumber={printTx.batch?.batch_number}
+          expiryDate={printTx.batch?.expired_date ? new Date(printTx.batch.expired_date).toLocaleDateString("id-ID") : ""}
+        />
       )}
     </div>
   );

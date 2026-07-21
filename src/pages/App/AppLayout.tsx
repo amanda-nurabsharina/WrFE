@@ -36,7 +36,8 @@ import {
   Database,
   ChevronDown,
   Settings,
-  Warehouse
+  Warehouse,
+  CheckSquare
 } from "lucide-react";
 import { useAppLayout } from "./useAppLayout";
 import { useStore } from "../../store/store";
@@ -166,6 +167,7 @@ export const AppLayout = () => {
         icon: Warehouse,
         children: [
           { to: "/app/inward" as any, label: t("navigation.inward"), icon: ArrowDownLeft, key: "inward" },
+          { to: "/app/put-away" as any, label: "Put Away", icon: CheckSquare, key: "inward" },
           { to: "/app/outward" as any, label: t("navigation.outward"), icon: ArrowUpRight, key: "outward" },
           { to: "/app/expired" as any, label: t("navigation.expired"), icon: Clock, key: "expired" },
           { to: "/app/opname" as any, label: t("navigation.opname"), icon: ShieldCheck, key: "opname" },
