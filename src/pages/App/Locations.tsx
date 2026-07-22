@@ -14,9 +14,11 @@ import {
 } from "lucide-react";
 import { useToast } from "../../components/ui";
 import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
+import { useTranslation } from "react-i18next";
 
 export const Locations = () => {
   const { toast } = useToast();
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -40,26 +42,32 @@ export const Locations = () => {
   const [formData, setFormData] = React.useState({
     warehouse_id: "",
     aisle: "A01",
-    rack: "R01",
+    rack: "",
     shelf: "S01",
     bin: "B01",
     max_weight: 500,
     max_volume: 2,
   });
 
-  // Fetch Locations
+  // Query Locations
   const { data: locationsResp, isLoading } = useQuery({
     queryKey: ["locations"],
     queryFn: () => imsService.getLocations(),
   });
   const locations = locationsResp?.data?.data || [];
 
-  // Fetch Warehouses
+  // Query Warehouses
   const { data: warehousesResp } = useQuery({
     queryKey: ["warehouses"],
     queryFn: () => imsService.getWarehouses(),
   });
   const warehouses = warehousesResp?.data?.data || [];
+
+  React.useEffect(() => {
+    if (warehouses.length > 0 && !formData.warehouse_id) {
+      setFormData((prev) => ({ ...prev, warehouse_id: warehouses[0].id }));
+    }
+  }, [warehouses]);
 
   // Create Mutation
   const createMutation = useMutation({
@@ -129,7 +137,7 @@ export const Locations = () => {
     setFormData({
       warehouse_id: warehouses[0]?.id || "",
       aisle: "A01",
-      rack: "R01",
+      rack: "",
       shelf: "S01",
       bin: "B01",
       max_weight: 500,
@@ -189,10 +197,10 @@ export const Locations = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
             <Layers className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-            Master Data Rak & Lokasi Gudang
+            {t("locations.title")}
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Manajemen Lorong (Aisle), Nama Rak, Shelf, Bin, Kapasitas, dan Cetak Barcode Stiker Rak.
+            {t("locations.subtitle")}
           </p>
         </div>
         <button
@@ -200,7 +208,7 @@ export const Locations = () => {
           className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Tambah Rak Baru
+          {t("locations.addBtn")}
         </button>
       </div>
 
@@ -211,8 +219,8 @@ export const Locations = () => {
             <Layers className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Lokasi Rak</span>
-            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{locations.length} Rak</span>
+            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">{t("locations.title").toUpperCase()}</span>
+            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{locations.length}</span>
           </div>
         </div>
 
@@ -221,8 +229,8 @@ export const Locations = () => {
             <Building2 className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Gudang</span>
-            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{warehouses.length} Gudang</span>
+            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">{t("warehouses.totalWarehouses").toUpperCase()}</span>
+            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{warehouses.length}</span>
           </div>
         </div>
 
@@ -231,8 +239,8 @@ export const Locations = () => {
             <Box className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Kapasitas Rata-Rata</span>
-            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">500 Kg / Rak</span>
+            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">{t("locations.maxWeight").toUpperCase()}</span>
+            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">500 Kg</span>
           </div>
         </div>
       </div>

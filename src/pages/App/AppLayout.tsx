@@ -148,8 +148,8 @@ export const AppLayout = () => {
         icon: Database,
         children: [
           { to: "/app/products" as any, label: t("navigation.products"), icon: Package, key: "products" },
-          { to: "/app/warehouses" as any, label: "Master Gudang", icon: Warehouse, key: "products" },
-          { to: "/app/locations" as any, label: "Master Rak / Lokasi", icon: Layers, key: "products" },
+          { to: "/app/warehouses" as any, label: t("navigation.warehouses"), icon: Warehouse, key: "products" },
+          { to: "/app/locations" as any, label: t("navigation.locations"), icon: Layers, key: "products" },
           { to: "/app/suppliers" as any, label: t("navigation.suppliers"), icon: Building2, key: "suppliers" },
           { to: "/app/customer" as any, label: t("navigation.customers"), icon: Contact, key: "customers" },
           { to: "/app/packaging" as any, label: t("navigation.packaging"), icon: Box, key: "packaging" },

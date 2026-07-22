@@ -11,9 +11,11 @@ import {
   Warehouse
 } from "lucide-react";
 import { useToast } from "../../components/ui";
+import { useTranslation } from "react-i18next";
 
 export const Warehouses = () => {
   const { toast } = useToast();
+  const { t } = useTranslation("common");
   const queryClient = useQueryClient();
 
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -144,10 +146,10 @@ export const Warehouses = () => {
         <div>
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
             <Building2 className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
-            Master Data Gudang & Fasilitas
+            {t("warehouses.title")}
           </h1>
           <p className="text-xs sm:text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-            Pengelolaan Fleksibel Kode Gudang, Lokasi Penyimpanan, dan Distribusi Stok Inventaris.
+            {t("warehouses.subtitle")}
           </p>
         </div>
         <button
@@ -155,7 +157,7 @@ export const Warehouses = () => {
           className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs sm:text-sm shadow-md transition flex items-center justify-center gap-2 shrink-0"
         >
           <Plus className="w-4 h-4" />
-          Tambah Gudang Baru
+          {t("warehouses.addBtn")}
         </button>
       </div>
 
@@ -166,8 +168,8 @@ export const Warehouses = () => {
             <Warehouse className="w-6 h-6" />
           </div>
           <div>
-            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">Total Gudang Terdaftar</span>
-            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{warehouses.length} Gudang</span>
+            <span className="text-xs text-zinc-400 font-bold uppercase tracking-wider block">{t("warehouses.totalWarehouses")}</span>
+            <span className="text-xl font-extrabold text-zinc-800 dark:text-white mt-0.5 block">{warehouses.length}</span>
           </div>
         </div>
 

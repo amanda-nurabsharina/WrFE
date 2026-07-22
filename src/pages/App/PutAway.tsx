@@ -4,10 +4,12 @@ import { useToast } from "../../components/ui";
 import BarcodeScanner from "../../components/barcode/BarcodeScanner";
 import { barcodeService } from "../../api/barcode.service";
 import { ArrowRight, MapPin, Box, CheckCircle2, RefreshCw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 export const PutAway: React.FC = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { t } = useTranslation("common");
 
   // Scanned States
   const [locationBarcode, setLocationBarcode] = useState("");
@@ -168,17 +170,17 @@ export const PutAway: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 dark:border-slate-800 pb-5">
         <div>
           <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-            WMS Put Away (Penyimpanan Barang)
+            {t("putAway.title")}
           </h2>
           <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Pindahkan barang dari area penerimaan sementara (<span className="font-semibold text-indigo-500">TEMP-RECEIVING</span>) ke dalam rak permanen.
+            {t("putAway.subtitle")}
           </p>
         </div>
         <button
           onClick={handleReset}
           className="px-4 py-2 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-xl text-xs font-semibold transition"
         >
-          Reset Form Scan
+          {t("putAway.resetBtn")}
         </button>
       </div>
 
@@ -202,7 +204,7 @@ export const PutAway: React.FC = () => {
                 1
               </span>
               <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">
-                LOKASI RAK TUJUAN
+                {t("putAway.step1Header")}
               </span>
             </div>
 
