@@ -49,6 +49,9 @@ export const AppLayout = () => {
   const user = useStore((state) => state.user);
   const { isSidebarCollapsed, toggleSidebar } = useUIStore();
   const [showNotifications, setShowNotifications] = React.useState(false);
+  const [isAllAlertsModalOpen, setIsAllAlertsModalOpen] = React.useState(false);
+  const [alertFilterTab, setAlertFilterTab] = React.useState<"all" | "critical" | "warning">("all");
+  const [alertSearchQuery, setAlertSearchQuery] = React.useState("");
   const navigate = useNavigate();
   const { t } = useTranslation("common");
 
@@ -71,33 +74,7 @@ export const AppLayout = () => {
   const notificationsList = React.useMemo(() => {
     const list: any[] = [];
     
-    // 1. Add Low Stock & Out of Stock alerts
-    productsList.forEach((p: any) => {
-      const stock = p.stock ?? 0;
-      if (stock === 0) {
-        list.push({
-          id: `out-of-stock-${p.id}`,
-          type: "out_of_stock",
-          title: p.name,
-          subtitle: p.code,
-          message: t("navigation.msgOutOfStock", { min: p.minimum_stock, unit: p.unit }),
-          link: "/app/products",
-          severity: "critical"
-        });
-      } else if (stock <= p.minimum_stock) {
-        list.push({
-          id: `low-stock-${p.id}`,
-          type: "low_stock",
-          title: p.name,
-          subtitle: p.code,
-          message: t("navigation.msgLowStock", { stock, unit: p.unit, min: p.minimum_stock }),
-          link: "/app/products",
-          severity: "warning"
-        });
-      }
-    });
-
-    // 2. Add Expiry alerts
+    // 1. Add Expiry alerts
     alerts.forEach((a: any) => {
       const expDate = new Date(a.expired_date);
       const today = new Date();
@@ -115,11 +92,41 @@ export const AppLayout = () => {
           ? t("navigation.msgExpired", { batch: a.batch_number })
           : t("navigation.msgNearExpiry", { batch: a.batch_number, days: diffDays }),
         link: "/app/expired",
-        severity: isExpired ? "critical" : "warning"
+        severity: isExpired ? "critical" : "warning",
+        priorityScore: isExpired ? 1000 + Math.abs(diffDays) : 500 - diffDays,
       });
     });
 
-    return list;
+    // 2. Add Low Stock & Out of Stock alerts
+    productsList.forEach((p: any) => {
+      const stock = p.stock ?? 0;
+      if (stock === 0) {
+        list.push({
+          id: `out-of-stock-${p.id}`,
+          type: "out_of_stock",
+          title: p.name,
+          subtitle: p.code,
+          message: t("navigation.msgOutOfStock", { min: p.minimum_stock, unit: p.unit }),
+          link: "/app/products",
+          severity: "critical",
+          priorityScore: 900,
+        });
+      } else if (stock <= p.minimum_stock) {
+        list.push({
+          id: `low-stock-${p.id}`,
+          type: "low_stock",
+          title: p.name,
+          subtitle: p.code,
+          message: t("navigation.msgLowStock", { stock, unit: p.unit, min: p.minimum_stock }),
+          link: "/app/products",
+          severity: "warning",
+          priorityScore: 400,
+        });
+      }
+    });
+
+    // Sort by priorityScore descending (Critical/Urgent at top)
+    return list.sort((a, b) => b.priorityScore - a.priorityScore);
   }, [productsList, alerts, t]);
 
   const isAdmin = user?.role === "admin" || user?.role?.includes("admin") || user?.role?.includes("super");
@@ -355,13 +362,13 @@ export const AppLayout = () => {
                       ))
                     )}
                   </div>
-                  <div className="p-2 border-t border-zinc-150 dark:border-zinc-800 text-center bg-zinc-50 dark:bg-zinc-955">
+                  <div className="p-2.5 border-t border-zinc-150 dark:border-zinc-800 text-center bg-zinc-50 dark:bg-zinc-955">
                     <button
                       onClick={() => {
                         setShowNotifications(false);
-                        navigate({ to: "/app/expired" });
+                        setIsAllAlertsModalOpen(true);
                       }}
-                      className="text-[10px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:underline w-full text-center"
+                      className="text-[11px] font-extrabold text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition w-full text-center py-1 flex items-center justify-center gap-1"
                     >
                       {t("navigation.viewAllAlerts")} &rarr;
                     </button>
@@ -410,6 +417,178 @@ export const AppLayout = () => {
           <Outlet />
         </div>
       </div>
+
+      {/* Modal Popup: All Alerts Center */}
+      {isAllAlertsModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 select-none animate-in fade-in duration-150">
+          <div className="w-full max-w-2xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-150">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-zinc-150 dark:border-zinc-800 flex justify-between items-center bg-zinc-50 dark:bg-zinc-955">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 rounded-xl">
+                  <Bell className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-extrabold text-base text-zinc-900 dark:text-white flex items-center gap-2">
+                    Daftar Lengkap Peringatan & Notifikasi Gudang
+                    <span className="px-2 py-0.5 bg-rose-500 text-white rounded-full text-[10px] font-black">
+                      {notificationsList.length}
+                    </span>
+                  </h3>
+                  <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
+                    Monitoring stok habis, menipis, dan batch mendekati/sudah kadaluwarsa secara terurut.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsAllAlertsModalOpen(false)}
+                className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 p-2 hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded-full transition font-bold"
+              >
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Controls: Search & Tabs */}
+            <div className="p-4 border-b border-zinc-150 dark:border-zinc-800 space-y-3 bg-zinc-50/50 dark:bg-zinc-900/50">
+              <div className="flex flex-col sm:flex-row gap-3 justify-between items-center">
+                <div className="flex bg-zinc-100 dark:bg-zinc-800 p-1 rounded-xl w-full sm:w-auto text-xs font-bold">
+                  <button
+                    onClick={() => setAlertFilterTab("all")}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      alertFilterTab === "all"
+                        ? "bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-300 shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    Semua ({notificationsList.length})
+                  </button>
+                  <button
+                    onClick={() => setAlertFilterTab("critical")}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      alertFilterTab === "critical"
+                        ? "bg-rose-500 text-white shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    Mendesak ({notificationsList.filter((n) => n.severity === "critical").length})
+                  </button>
+                  <button
+                    onClick={() => setAlertFilterTab("warning")}
+                    className={`px-3 py-1.5 rounded-lg transition ${
+                      alertFilterTab === "warning"
+                        ? "bg-amber-500 text-white shadow-sm"
+                        : "text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200"
+                    }`}
+                  >
+                    Peringatan ({notificationsList.filter((n) => n.severity === "warning").length})
+                  </button>
+                </div>
+
+                <input
+                  type="text"
+                  placeholder="Cari nama barang, SKU, atau batch..."
+                  value={alertSearchQuery}
+                  onChange={(e) => setAlertSearchQuery(e.target.value)}
+                  className="w-full sm:w-64 px-3 py-1.5 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+            </div>
+
+            {/* Modal Body: Notifications List */}
+            <div className="flex-1 overflow-y-auto divide-y divide-zinc-150 dark:divide-zinc-800 p-2">
+              {(() => {
+                const filtered = notificationsList.filter((n) => {
+                  const matchTab =
+                    alertFilterTab === "all" || n.severity === alertFilterTab;
+                  const query = alertSearchQuery.toLowerCase();
+                  const matchQuery =
+                    n.title.toLowerCase().includes(query) ||
+                    n.subtitle.toLowerCase().includes(query) ||
+                    n.message.toLowerCase().includes(query);
+                  return matchTab && matchQuery;
+                });
+
+                if (filtered.length === 0) {
+                  return (
+                    <div className="p-12 text-center text-xs text-zinc-400 font-medium">
+                      Tidak ada notifikasi yang sesuai kriteria pencarian.
+                    </div>
+                  );
+                }
+
+                return filtered.map((notif: any) => (
+                  <div
+                    key={notif.id}
+                    onClick={() => {
+                      setIsAllAlertsModalOpen(false);
+                      navigate({ to: notif.link });
+                    }}
+                    className="p-4 hover:bg-zinc-50 dark:hover:bg-zinc-850 rounded-2xl cursor-pointer transition flex items-center justify-between gap-4 group"
+                  >
+                    <div className="flex items-start gap-3.5">
+                      <div
+                        className={`p-2.5 rounded-xl shrink-0 mt-0.5 ${
+                          notif.severity === "critical"
+                            ? "bg-rose-100 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400"
+                            : "bg-amber-100 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400"
+                        }`}
+                      >
+                        <Bell className="w-5 h-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-extrabold text-sm text-zinc-900 dark:text-white group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition">
+                            {notif.title}
+                          </span>
+                          <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                            {notif.subtitle}
+                          </span>
+                        </div>
+                        <p className="text-xs text-zinc-600 dark:text-zinc-300 font-medium">
+                          {notif.message}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span
+                        className={`font-black text-[10px] px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                          notif.severity === "critical"
+                            ? "bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-400"
+                            : "bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400"
+                        }`}
+                      >
+                        {notif.type === "expiry"
+                          ? t("navigation.badgeExpiry")
+                          : notif.type === "out_of_stock"
+                          ? t("navigation.badgeOutOfStock")
+                          : t("navigation.badgeLowStock")}
+                      </span>
+                      <button className="px-3 py-1.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 group-hover:bg-indigo-600 group-hover:text-white rounded-xl text-xs font-bold transition">
+                        Buka &rarr;
+                      </button>
+                    </div>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-zinc-150 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-955 flex justify-between items-center text-xs">
+              <span className="text-zinc-500 dark:text-zinc-400 font-medium">
+                Sistem Notifikasi Real-Time Gudang IMS
+              </span>
+              <button
+                onClick={() => setIsAllAlertsModalOpen(false)}
+                className="px-4 py-2 bg-zinc-200 dark:bg-zinc-800 hover:bg-zinc-300 dark:hover:bg-zinc-700 text-zinc-800 dark:text-zinc-200 rounded-xl font-bold transition"
+              >
+                Tutup Modal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
+
