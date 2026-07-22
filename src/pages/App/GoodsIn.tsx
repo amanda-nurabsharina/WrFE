@@ -5,7 +5,7 @@ import { barcodeService } from "../../api/barcode.service";
 import BarcodeScanner from "../../components/barcode/BarcodeScanner";
 import { useToast } from "../../components/ui";
 import { showClearErrorToast, downloadExcelCSV } from "../../utils";
-import { ArrowDownLeft, Plus, History, Info, Download, Edit, CheckCircle, UploadCloud, Barcode } from "lucide-react";
+import { ArrowDownLeft, Plus, History, Info, Download, Edit, CheckCircle, UploadCloud, Barcode, ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
 import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
 
 export const GoodsIn = () => {
@@ -23,6 +23,10 @@ export const GoodsIn = () => {
   const [proofDocument, setProofDocument] = React.useState("");
   const [isUploading, setIsUploading] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState<"completed" | "draft">("completed");
+
+  // History Pagination State
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const [pageSize, setPageSize] = React.useState(5);
   const [selectedPreviewImage, setSelectedPreviewImage] = React.useState<string | null>(null);
 
   // Modals state
@@ -316,7 +320,13 @@ export const GoodsIn = () => {
     downloadExcelCSV(`Laporan_Barang_Masuk_${activeTab === "completed" ? "Completed" : "Draft"}.csv`, headers, rows);
   };
 
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab]);
+
   const filteredTransactions = recentTransactions.filter((tx: any) => (tx.status || "completed") === activeTab);
+  const totalPages = Math.ceil(filteredTransactions.length / pageSize) || 1;
+  const paginatedTransactions = filteredTransactions.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="space-y-6">
@@ -536,14 +546,33 @@ export const GoodsIn = () => {
                   {isUploading ? "Uploading..." : "Pilih File Foto"}
                 </label>
                 {proofDocument && (
-                  <div className="mt-2 flex flex-col items-center gap-1.5">
-                    <img
-                      src={`${apiOrigin}${proofDocument}`}
-                      alt="Preview"
-                      onClick={() => setSelectedPreviewImage(`${apiOrigin}${proofDocument}`)}
-                      className="h-14 w-14 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 cursor-zoom-in hover:opacity-80 transition-all"
-                    />
-                    <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-full">✓ {proofDocument.split("/").pop()}</span>
+                  <div className="mt-2 flex flex-col items-center gap-1.5 relative">
+                    <div className="relative group">
+                      <img
+                        src={`${apiOrigin}${proofDocument}`}
+                        alt="Preview"
+                        onClick={() => setSelectedPreviewImage(`${apiOrigin}${proofDocument}`)}
+                        className="h-16 w-16 object-cover rounded-xl border border-zinc-200 dark:border-zinc-800 cursor-zoom-in hover:opacity-80 transition-all shadow-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setProofDocument("")}
+                        title="Hapus Foto"
+                        className="absolute -top-2 -right-2 p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-all flex items-center justify-center"
+                      >
+                        <X className="w-3.5 h-3.5 stroke-[3]" />
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-[180px]">✓ {proofDocument.split("/").pop()}</span>
+                      <button
+                        type="button"
+                        onClick={() => setProofDocument("")}
+                        className="text-[9px] font-extrabold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5"
+                      >
+                        <Trash2 className="w-2.5 h-2.5" /> Hapus
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -640,7 +669,7 @@ export const GoodsIn = () => {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-100 dark:divide-zinc-850 font-medium text-zinc-700 dark:text-zinc-300">
-                  {filteredTransactions.map((tx: any) => (
+                  {paginatedTransactions.map((tx: any) => (
                     <tr key={tx.id} className="hover:bg-zinc-50/50 dark:hover:bg-zinc-900/50">
                       <td className="py-3 px-4 text-zinc-500">
                         {new Date(tx.created_at).toLocaleDateString("id-ID", { hour: "2-digit", minute: "2-digit" })}
@@ -718,6 +747,52 @@ export const GoodsIn = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {filteredTransactions.length > 0 && (
+            <div className="pt-4 border-t border-zinc-150 dark:border-zinc-800 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-500 font-medium">
+              <div className="flex items-center gap-2">
+                <span>Tampilkan:</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="px-2 py-1 bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-800 dark:text-zinc-200 focus:outline-none"
+                >
+                  <option value={5}>5 baris</option>
+                  <option value={10}>10 baris</option>
+                  <option value={20}>20 baris</option>
+                </select>
+                <span className="text-[11px] text-zinc-400">
+                  (Menampilkan {Math.min((currentPage - 1) * pageSize + 1, filteredTransactions.length)}-{Math.min(currentPage * pageSize, filteredTransactions.length)} dari {filteredTransactions.length} data)
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-1.5 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition text-zinc-700 dark:text-zinc-300"
+                  title="Halaman Sebelumnya"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <span className="px-3 py-1 font-bold text-xs bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-lg">
+                  Halaman {currentPage} dari {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-1.5 border border-zinc-200 dark:border-zinc-700 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-lg disabled:opacity-30 disabled:hover:bg-transparent transition text-zinc-700 dark:text-zinc-300"
+                  title="Halaman Selanjutnya"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
             </div>
           )}
         </div>
@@ -850,14 +925,33 @@ export const GoodsIn = () => {
                     {isUploading ? "Uploading..." : "Pilih File Foto Baru"}
                   </label>
                   {editProof && (
-                    <div className="mt-2 flex flex-col items-center gap-1.5">
-                      <img
-                        src={`${apiOrigin}${editProof}`}
-                        alt="Preview"
-                        onClick={() => setSelectedPreviewImage(`${apiOrigin}${editProof}`)}
-                        className="h-14 w-14 object-cover rounded-lg border border-zinc-200 dark:border-zinc-800 cursor-zoom-in hover:opacity-80 transition-all shadow-sm"
-                      />
-                      <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-full">✓ {editProof.split("/").pop()}</span>
+                    <div className="mt-2 flex flex-col items-center gap-1.5 relative">
+                      <div className="relative group">
+                        <img
+                          src={`${apiOrigin}${editProof}`}
+                          alt="Preview"
+                          onClick={() => setSelectedPreviewImage(`${apiOrigin}${editProof}`)}
+                          className="h-16 w-16 object-cover rounded-xl border border-zinc-200 dark:border-zinc-800 cursor-zoom-in hover:opacity-80 transition-all shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditProof("")}
+                          title="Hapus Foto"
+                          className="absolute -top-2 -right-2 p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-all flex items-center justify-center"
+                        >
+                          <X className="w-3.5 h-3.5 stroke-[3]" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-[180px]">✓ {editProof.split("/").pop()}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditProof("")}
+                          className="text-[9px] font-extrabold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" /> Hapus
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -944,14 +1038,33 @@ export const GoodsIn = () => {
                     {isUploading ? "Uploading..." : "Pilih File Bukti"}
                   </label>
                   {editProof && (
-                    <div className="mt-2 flex flex-col items-center gap-1.5">
-                      <img
-                        src={`${apiOrigin}${editProof}`}
-                        alt="Preview"
-                        onClick={() => setSelectedPreviewImage(`${apiOrigin}${editProof}`)}
-                        className="h-14 w-14 object-cover rounded-lg border border-zinc-200 dark:border-zinc-850 cursor-zoom-in hover:opacity-80 transition-all shadow-sm"
-                      />
-                      <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-full">✓ {editProof.split("/").pop()}</span>
+                    <div className="mt-2 flex flex-col items-center gap-1.5 relative">
+                      <div className="relative group">
+                        <img
+                          src={`${apiOrigin}${editProof}`}
+                          alt="Preview"
+                          onClick={() => setSelectedPreviewImage(`${apiOrigin}${editProof}`)}
+                          className="h-16 w-16 object-cover rounded-xl border border-zinc-200 dark:border-zinc-850 cursor-zoom-in hover:opacity-80 transition-all shadow-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditProof("")}
+                          title="Hapus Foto"
+                          className="absolute -top-2 -right-2 p-1 bg-rose-500 hover:bg-rose-600 text-white rounded-full shadow-md transition-all flex items-center justify-center"
+                        >
+                          <X className="w-3.5 h-3.5 stroke-[3]" />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] text-emerald-600 font-bold block truncate max-w-[180px]">✓ {editProof.split("/").pop()}</span>
+                        <button
+                          type="button"
+                          onClick={() => setEditProof("")}
+                          className="text-[9px] font-extrabold text-rose-500 hover:text-rose-700 hover:underline flex items-center gap-0.5"
+                        >
+                          <Trash2 className="w-2.5 h-2.5" /> Hapus
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
