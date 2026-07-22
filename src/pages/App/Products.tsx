@@ -129,6 +129,7 @@ export const Products = () => {
   const [storageTemp, setStorageTemp] = React.useState("");
   const [storageHumidity, setStorageHumidity] = React.useState("");
   const [storageRestrictions, setStorageRestrictions] = React.useState("");
+  const [defaultLocationID, setDefaultLocationID] = React.useState("");
   const [initialBatchNo, setInitialBatchNo] = React.useState("");
   const [initialQty, setInitialQty] = React.useState(0);
   const [initialExpiryDate, setInitialExpiryDate] = React.useState("");
@@ -151,6 +152,13 @@ export const Products = () => {
     queryFn: () => imsService.getProducts(search),
   });
   const products = response?.data?.data || [];
+
+  // Query locations (for default rack selection)
+  const { data: locationsResp } = useQuery({
+    queryKey: ["locations"],
+    queryFn: () => imsService.getLocations()
+  });
+  const locations = locationsResp?.data?.data || [];
 
   // Query packaging units (for selection dropdown)
   const { data: packagingResponse } = useQuery({
@@ -228,6 +236,7 @@ export const Products = () => {
     setMsdsReference("");
     setSubCategory("Pupuk");
     setPackagingUnitID(packagingUnits[0]?.id || "");
+    setDefaultLocationID("");
     setConversionRatio(1);
     setPurchasePrice(0);
     setPriceDistributor(0);
@@ -255,6 +264,7 @@ export const Products = () => {
     setMsdsReference(prod.msds_reference || "");
     setSubCategory(prod.sub_category || "Pupuk");
     setPackagingUnitID(prod.packaging_unit_id || "");
+    setDefaultLocationID(prod.default_location_id || "");
     setConversionRatio(prod.conversion_ratio || 1);
     setPurchasePrice(prod.purchase_price || 0);
     setPriceDistributor(prod.price_distributor || 0);
@@ -282,6 +292,7 @@ export const Products = () => {
       msds_reference: msdsReference,
       sub_category: subCategory,
       packaging_unit_id: packagingUnitID,
+      default_location_id: defaultLocationID,
       conversion_ratio: Number(conversionRatio),
       purchase_price: Number(purchasePrice),
       price_distributor: Number(priceDistributor),
@@ -401,11 +412,18 @@ export const Products = () => {
                       </td>
                     <td className="py-4 px-6 font-semibold text-zinc-900 dark:text-white">
                       <div>{prod.name}</div>
-                      {prod.kementan_reg_no && (
-                        <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">
-                          Reg: {prod.kementan_reg_no}
-                        </div>
-                      )}
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {prod.kementan_reg_no && (
+                          <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-normal">
+                            Reg: {prod.kementan_reg_no}
+                          </span>
+                        )}
+                        {prod.default_location && (
+                          <span className="px-1.5 py-0.5 bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 rounded text-[9px] font-bold border border-indigo-200 dark:border-indigo-800">
+                            Rak: {prod.default_location.rack} ({prod.default_location.barcode})
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-6">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -632,16 +650,33 @@ export const Products = () => {
                 </div>
               </div>
 
-              {/* Row 5: MSDS Reference */}
-              <div className="grid gap-1">
-                <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("products.msdsReference")}</label>
-                <input
-                  type="text"
-                  placeholder="e.g. MSDS-GLY-480.pdf or URL link"
-                  value={msdsReference}
-                  onChange={(e) => setMsdsReference(e.target.value)}
-                  className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                />
+              {/* Row 5: MSDS Reference & Default Rack Location */}
+              <div className="grid gap-4 grid-cols-2">
+                <div className="grid gap-1">
+                  <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">{t("products.msdsReference")}</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. MSDS-GLY-480.pdf or URL link"
+                    value={msdsReference}
+                    onChange={(e) => setMsdsReference(e.target.value)}
+                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+                <div className="grid gap-1">
+                  <label className="text-xs font-semibold text-zinc-600 dark:text-zinc-300">Rak / Lokasi Penyimpanan Default</label>
+                  <select
+                    value={defaultLocationID}
+                    onChange={(e) => setDefaultLocationID(e.target.value)}
+                    className="px-3 py-2 text-xs border border-zinc-200 dark:border-zinc-855 rounded-lg bg-zinc-50 dark:bg-zinc-955 text-zinc-800 dark:text-black focus:outline-none focus:ring-1 focus:ring-indigo-500 font-medium"
+                  >
+                    <option value="">-- Tanpa Rak Default --</option>
+                    {locations.map((loc: any) => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.rack} (Aisle: {loc.aisle || "-"}, {loc.barcode})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Row 6: Packaging Unit, Base Unit & Ratio */}

@@ -78,11 +78,31 @@ export type TSalesOrder = {
   created_at?: string;
 };
 
+export type TWarehouse = {
+  id: string;
+  code: string;
+  name: string;
+  created_at?: string;
+};
+
 export type TPackagingUnit = {
   id: string;
   code: string;
   name: string;
   description: string;
+  created_at?: string;
+};
+
+export type TLocation = {
+  id: string;
+  warehouse_id: string;
+  aisle?: string;
+  rack: string;
+  shelf?: string;
+  bin?: string;
+  max_weight?: number;
+  max_volume?: number;
+  barcode: string;
   created_at?: string;
 };
 
@@ -100,6 +120,8 @@ export type TProduct = {
   minimum_stock: number;
   packaging_unit_id?: string;
   packaging_unit?: TPackagingUnit;
+  default_location_id?: string;
+  default_location?: TLocation;
   conversion_ratio?: number;
   purchase_price?: number;
   price_distributor?: number;
@@ -239,16 +261,52 @@ class IMSService {
     );
   }
 
-  // Metadata Dropdowns
+  // Metadata Dropdowns & Warehouse CRUD
   async getWarehouses() {
-    return handleAsync<any, { data: any[] }>(() =>
+    return handleAsync<any, { data: TWarehouse[] }>(() =>
       apiService.get("warehouses")
     );
   }
 
+  async createWarehouse(payload: any) {
+    return handleAsync<any, { data: TWarehouse }>(() =>
+      apiService.post("warehouses", payload)
+    );
+  }
+
+  async updateWarehouse(id: string, payload: any) {
+    return handleAsync<any, { data: TWarehouse }>(() =>
+      apiService.put(`warehouses/${id}`, payload)
+    );
+  }
+
+  async deleteWarehouse(id: string) {
+    return handleAsync<any, any>(() =>
+      apiService.delete(`warehouses/${id}`)
+    );
+  }
+
   async getLocations() {
-    return handleAsync<any, { data: any[] }>(() =>
+    return handleAsync<any, { data: TLocation[] }>(() =>
       apiService.get("locations")
+    );
+  }
+
+  async createLocation(payload: any) {
+    return handleAsync<any, { data: TLocation }>(() =>
+      apiService.post("locations", payload)
+    );
+  }
+
+  async updateLocation(id: string, payload: any) {
+    return handleAsync<any, { data: TLocation }>(() =>
+      apiService.put(`locations/${id}`, payload)
+    );
+  }
+
+  async deleteLocation(id: string) {
+    return handleAsync<any, any>(() =>
+      apiService.delete(`locations/${id}`)
     );
   }
 

@@ -14,6 +14,7 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AppWarehousesRouteImport } from './routes/app/warehouses'
 import { Route as AppUsersRouteImport } from './routes/app/users'
 import { Route as AppSuppliersRouteImport } from './routes/app/suppliers'
 import { Route as AppSalesOrdersRouteImport } from './routes/app/sales-orders'
@@ -25,6 +26,7 @@ import { Route as AppProductsRouteImport } from './routes/app/products'
 import { Route as AppPackagingRouteImport } from './routes/app/packaging'
 import { Route as AppOutwardRouteImport } from './routes/app/outward'
 import { Route as AppOpnameRouteImport } from './routes/app/opname'
+import { Route as AppLocationsRouteImport } from './routes/app/locations'
 import { Route as AppInwardRouteImport } from './routes/app/inward'
 import { Route as AppExpiredRouteImport } from './routes/app/expired'
 import { Route as AppCustomerRouteImport } from './routes/app/customer'
@@ -54,6 +56,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/login',
   path: '/login',
   getParentRoute: () => AuthRoute,
+} as any)
+const AppWarehousesRoute = AppWarehousesRouteImport.update({
+  id: '/warehouses',
+  path: '/warehouses',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppUsersRoute = AppUsersRouteImport.update({
   id: '/users',
@@ -110,6 +117,11 @@ const AppOpnameRoute = AppOpnameRouteImport.update({
   path: '/opname',
   getParentRoute: () => AppRoute,
 } as any)
+const AppLocationsRoute = AppLocationsRouteImport.update({
+  id: '/locations',
+  path: '/locations',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppInwardRoute = AppInwardRouteImport.update({
   id: '/inward',
   path: '/inward',
@@ -139,6 +151,7 @@ export interface FileRoutesByFullPath {
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
+  '/app/locations': typeof AppLocationsRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
@@ -150,6 +163,7 @@ export interface FileRoutesByFullPath {
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
 }
@@ -160,6 +174,7 @@ export interface FileRoutesByTo {
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
+  '/app/locations': typeof AppLocationsRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
@@ -171,6 +186,7 @@ export interface FileRoutesByTo {
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/auth/login': typeof AuthLoginRoute
   '/app': typeof AppIndexRoute
 }
@@ -183,6 +199,7 @@ export interface FileRoutesById {
   '/app/customer': typeof AppCustomerRoute
   '/app/expired': typeof AppExpiredRoute
   '/app/inward': typeof AppInwardRoute
+  '/app/locations': typeof AppLocationsRoute
   '/app/opname': typeof AppOpnameRoute
   '/app/outward': typeof AppOutwardRoute
   '/app/packaging': typeof AppPackagingRoute
@@ -194,6 +211,7 @@ export interface FileRoutesById {
   '/app/sales-orders': typeof AppSalesOrdersRoute
   '/app/suppliers': typeof AppSuppliersRoute
   '/app/users': typeof AppUsersRoute
+  '/app/warehouses': typeof AppWarehousesRoute
   '/auth/login': typeof AuthLoginRoute
   '/app/': typeof AppIndexRoute
 }
@@ -207,6 +225,7 @@ export interface FileRouteTypes {
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
+    | '/app/locations'
     | '/app/opname'
     | '/app/outward'
     | '/app/packaging'
@@ -218,6 +237,7 @@ export interface FileRouteTypes {
     | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
+    | '/app/warehouses'
     | '/auth/login'
     | '/app/'
   fileRoutesByTo: FileRoutesByTo
@@ -228,6 +248,7 @@ export interface FileRouteTypes {
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
+    | '/app/locations'
     | '/app/opname'
     | '/app/outward'
     | '/app/packaging'
@@ -239,6 +260,7 @@ export interface FileRouteTypes {
     | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
+    | '/app/warehouses'
     | '/auth/login'
     | '/app'
   id:
@@ -250,6 +272,7 @@ export interface FileRouteTypes {
     | '/app/customer'
     | '/app/expired'
     | '/app/inward'
+    | '/app/locations'
     | '/app/opname'
     | '/app/outward'
     | '/app/packaging'
@@ -261,6 +284,7 @@ export interface FileRouteTypes {
     | '/app/sales-orders'
     | '/app/suppliers'
     | '/app/users'
+    | '/app/warehouses'
     | '/auth/login'
     | '/app/'
   fileRoutesById: FileRoutesById
@@ -307,6 +331,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/login'
       preLoaderRoute: typeof AuthLoginRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/app/warehouses': {
+      id: '/app/warehouses'
+      path: '/warehouses'
+      fullPath: '/app/warehouses'
+      preLoaderRoute: typeof AppWarehousesRouteImport
+      parentRoute: typeof AppRoute
     }
     '/app/users': {
       id: '/app/users'
@@ -385,6 +416,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppOpnameRouteImport
       parentRoute: typeof AppRoute
     }
+    '/app/locations': {
+      id: '/app/locations'
+      path: '/locations'
+      fullPath: '/app/locations'
+      preLoaderRoute: typeof AppLocationsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/app/inward': {
       id: '/app/inward'
       path: '/inward'
@@ -421,6 +459,7 @@ interface AppRouteChildren {
   AppCustomerRoute: typeof AppCustomerRoute
   AppExpiredRoute: typeof AppExpiredRoute
   AppInwardRoute: typeof AppInwardRoute
+  AppLocationsRoute: typeof AppLocationsRoute
   AppOpnameRoute: typeof AppOpnameRoute
   AppOutwardRoute: typeof AppOutwardRoute
   AppPackagingRoute: typeof AppPackagingRoute
@@ -432,6 +471,7 @@ interface AppRouteChildren {
   AppSalesOrdersRoute: typeof AppSalesOrdersRoute
   AppSuppliersRoute: typeof AppSuppliersRoute
   AppUsersRoute: typeof AppUsersRoute
+  AppWarehousesRoute: typeof AppWarehousesRoute
   AppIndexRoute: typeof AppIndexRoute
 }
 
@@ -440,6 +480,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppCustomerRoute: AppCustomerRoute,
   AppExpiredRoute: AppExpiredRoute,
   AppInwardRoute: AppInwardRoute,
+  AppLocationsRoute: AppLocationsRoute,
   AppOpnameRoute: AppOpnameRoute,
   AppOutwardRoute: AppOutwardRoute,
   AppPackagingRoute: AppPackagingRoute,
@@ -451,6 +492,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppSalesOrdersRoute: AppSalesOrdersRoute,
   AppSuppliersRoute: AppSuppliersRoute,
   AppUsersRoute: AppUsersRoute,
+  AppWarehousesRoute: AppWarehousesRoute,
   AppIndexRoute: AppIndexRoute,
 }
 

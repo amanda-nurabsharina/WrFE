@@ -12,3 +12,5 @@ export * from "./Users";
 export * from "./Roles";
 export * from "./ActivityLog";
 export * from "./Reporting";
+export * from "./Locations";
+export * from "./Warehouses";
