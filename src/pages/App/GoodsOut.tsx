@@ -203,14 +203,14 @@ export const GoodsOut = () => {
     mutationFn: (payload: any) => imsService.createOutward(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        showClearErrorToast(res.error, toast, "Failed to release stock");
+        showClearErrorToast(toast, res.error, "Gagal Mencatat Barang Keluar");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "out"] });
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Outward FEFO transaction recorded successfully", variant: "default" });
+      toast({ title: "Transaksi Barang Keluar Berhasil Dicatat", variant: "default" });
       // Reset form
       setQty(1);
       setDescription("");
@@ -223,7 +223,7 @@ export const GoodsOut = () => {
       setProofDocument("");
     },
     onError: (err: any) => {
-      showClearErrorToast(err, toast, "Failed to release stock");
+      showClearErrorToast(toast, err, "Gagal Mencatat Barang Keluar");
     }
   });
 
@@ -231,18 +231,18 @@ export const GoodsOut = () => {
     mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateTransaction(id, payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        showClearErrorToast(res.error, toast, "Failed to update transaction");
+        showClearErrorToast(toast, res.error, "Gagal Memperbarui Transaksi");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "out"] });
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Transaction updated successfully" });
+      toast({ title: "Transaksi Berhasil Diperbarui" });
       setEditingTx(null);
     },
     onError: (err: any) => {
-      showClearErrorToast(err, toast, "Failed to update transaction");
+      showClearErrorToast(toast, err, "Gagal Memperbarui Transaksi");
     }
   });
 
@@ -250,18 +250,18 @@ export const GoodsOut = () => {
     mutationFn: ({ id, proof }: { id: string; proof: string }) => imsService.completeTransaction(id, proof),
     onSuccess: (res: any) => {
       if (res?.error) {
-        showClearErrorToast(res.error, toast, "Failed to finalize transaction");
+        showClearErrorToast(toast, res.error, "Gagal Menyelesaikan Transaksi");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "out"] });
       queryClient.invalidateQueries({ queryKey: ["sales-orders"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Transaction finalized successfully" });
+      toast({ title: "Transaksi Berhasil Diselesaikan" });
       setCompletingTx(null);
     },
     onError: (err: any) => {
-      showClearErrorToast(err, toast, "Failed to finalize transaction");
+      showClearErrorToast(toast, err, "Gagal Menyelesaikan Transaksi");
     }
   });
 

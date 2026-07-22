@@ -167,14 +167,14 @@ export const GoodsIn = () => {
     mutationFn: (payload: any) => imsService.createInward(payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        showClearErrorToast(res.error, toast, "Failed to record transaction");
+        showClearErrorToast(toast, res.error, "Gagal Mencatat Barang Masuk");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "in"] });
       queryClient.invalidateQueries({ queryKey: ["purchase-orders"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Inward transaction recorded successfully", variant: "default" });
+      toast({ title: "Transaksi Barang Masuk Berhasil Dicatat", variant: "default" });
       // Reset form
       setInvoiceNo("");
       setBatchNumber("");
@@ -187,7 +187,7 @@ export const GoodsIn = () => {
       setProofDocument("");
     },
     onError: (err: any) => {
-      showClearErrorToast(err, toast, "Failed to record inward transaction");
+      showClearErrorToast(toast, err, "Gagal Mencatat Barang Masuk");
     }
   });
 
@@ -195,17 +195,17 @@ export const GoodsIn = () => {
     mutationFn: ({ id, payload }: { id: string; payload: any }) => imsService.updateTransaction(id, payload),
     onSuccess: (res: any) => {
       if (res?.error) {
-        showClearErrorToast(res.error, toast, "Failed to update transaction");
+        showClearErrorToast(toast, res.error, "Gagal Memperbarui Transaksi");
         return;
       }
       queryClient.invalidateQueries({ queryKey: ["transactions", "in"] });
       queryClient.invalidateQueries({ queryKey: ["batches"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard"] });
-      toast({ title: "Transaction updated successfully" });
+      toast({ title: "Transaksi Berhasil Diperbarui" });
       setEditingTx(null);
     },
     onError: (err: any) => {
-      showClearErrorToast(err, toast, "Failed to update transaction");
+      showClearErrorToast(toast, err, "Gagal Memperbarui Transaksi");
     }
   });
 

@@ -1,10 +1,24 @@
-export const showClearErrorToast = async (toast: any, error: any, defaultTitle: string) => {
+export const showClearErrorToast = async (arg1: any, arg2: any, defaultTitle: string = "Error") => {
+  let toastFn: any;
+  let errorObj: any;
+
+  if (typeof arg1 === "function") {
+    toastFn = arg1;
+    errorObj = arg2;
+  } else if (typeof arg2 === "function") {
+    toastFn = arg2;
+    errorObj = arg1;
+  } else {
+    console.error("showClearErrorToast: No valid toast function provided", arg1, arg2);
+    return;
+  }
+
   let message = "An error occurred";
   let description = "";
 
-  if (error && error.response) {
+  if (errorObj && errorObj.response) {
     try {
-      const errorJson = await error.response.clone().json();
+      const errorJson = await errorObj.response.clone().json();
       if (errorJson) {
         if (errorJson.message) {
           message = errorJson.message;
@@ -18,15 +32,17 @@ export const showClearErrorToast = async (toast: any, error: any, defaultTitle: 
         }
       }
     } catch (e) {
-      if (error.message) {
-        message = error.message;
+      if (errorObj.message) {
+        message = errorObj.message;
       }
     }
-  } else if (error && error.message) {
-    message = error.message;
+  } else if (errorObj && errorObj.message) {
+    message = errorObj.message;
+  } else if (typeof errorObj === "string") {
+    message = errorObj;
   }
 
-  toast({
+  toastFn({
     variant: "destructive",
     title: defaultTitle,
     description: message + (description ? `: ${description}` : ""),
