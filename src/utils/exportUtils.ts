@@ -1,7 +1,3 @@
-import ExcelJS from "exceljs";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 export interface TExportOptions {
   filename: string;
   title: string;
@@ -12,10 +8,13 @@ export interface TExportOptions {
 
 /**
  * Export data to Excel (.xlsx) with styled header, borders, auto column width, and zebra striping.
- * Fully compatible with modern and older Microsoft Excel versions (Excel 2007, 2010, 2013, 2016, 365, WPS, etc.)
+ * Uses dynamic import to keep initial bundle size light and prevent memory overflow during build.
  */
 export const exportToExcel = async (options: TExportOptions) => {
   const { filename, title, subtitle, headers, rows } = options;
+
+  // Dynamically import ExcelJS on demand
+  const { default: ExcelJS } = await import("exceljs");
 
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Warehouse Management System";
@@ -187,9 +186,14 @@ export const exportToCSV = (options: TExportOptions) => {
 
 /**
  * Export data to PDF with document header, auto landscape/portrait, styled table, and page footer.
+ * Dynamically imports jsPDF and jspdf-autotable on demand.
  */
-export const exportToPDF = (options: TExportOptions) => {
+export const exportToPDF = async (options: TExportOptions) => {
   const { filename, title, subtitle, headers, rows } = options;
+
+  // Dynamically import jsPDF and jspdf-autotable
+  const { default: jsPDF } = await import("jspdf");
+  const { default: autoTable } = await import("jspdf-autotable");
 
   // Determine orientation: if column count > 6, use landscape
   const orientation = headers.length > 6 ? "landscape" : "portrait";

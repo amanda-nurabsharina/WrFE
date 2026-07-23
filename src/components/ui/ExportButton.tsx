@@ -62,11 +62,14 @@ export const ExportButton: React.FC<TExportButtonProps> = ({
     }
   };
 
-  const handlePDFExport = () => {
+  const handlePDFExport = async () => {
     try {
-      exportToPDF(exportOptions);
+      setIsExporting(true);
+      await exportToPDF(exportOptions);
     } catch (err) {
       console.error("Failed to export PDF:", err);
+    } finally {
+      setIsExporting(false);
     }
   };
 

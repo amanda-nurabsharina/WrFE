@@ -80,10 +80,22 @@ export default defineConfig(({ mode }) => {
     plugins,
     build: {
       outDir: "dist",
-      sourcemap: true,
+      sourcemap: false,
       reportCompressedSize: false,
-      // READ-MORE:  https://vitejs.dev/config/build-options#build-target
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (id.includes("node_modules")) {
+              if (id.includes("exceljs")) return "vendor-excel";
+              if (id.includes("jspdf")) return "vendor-pdf";
+              if (id.includes("react")) return "vendor-react";
+            }
+          }
+        }
+      },
       target: browserslistToEsbuild(),
     },
   };
 });
+

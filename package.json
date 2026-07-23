@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "npx @tanstack/router-cli generate && tsc -b && vite build",
+    "build": "npx -y @tanstack/router-cli generate && tsc -b && vite build --sourcemap false",
+
     "preview": "vite preview",
     "preview:local:msw": "npm run build && vite preview --port 5101",
     "dev:test": "start-server-and-test dev http://localhost:9001",
