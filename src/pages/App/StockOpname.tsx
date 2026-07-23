@@ -3,9 +3,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TStockTransaction, TInventoryBatch } from "../../api/ims.service";
 import { barcodeService } from "../../api/barcode.service";
 import BarcodeScanner from "../../components/barcode/BarcodeScanner";
-import { useToast } from "../../components/ui";
-import { showClearErrorToast, downloadExcelCSV } from "../../utils";
-import { ShieldCheck, History, Check, AlertTriangle, Download } from "lucide-react";
+import { useToast, ExportButton } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
+import { ShieldCheck, History, Check, AlertTriangle } from "lucide-react";
+
 
 export const StockOpname = () => {
   const [batchId, setBatchId] = React.useState("");
@@ -67,27 +68,24 @@ export const StockOpname = () => {
   const batches = batchesResp?.data?.data || [];
   const recentTransactions = txsResp?.data?.data || [];
 
-  const downloadCSV = () => {
-    if (recentTransactions.length === 0) return;
-
-    const headers = ["Tanggal", "Ref Opname", "Nama Barang", "Kode Barang", "Batch #", "Auditor", "Discrepancy Qty", "Keterangan / Alasan"];
-    const rows = recentTransactions.map((tx: TStockTransaction) => {
+  const exportHeaders = ["Tanggal", "Ref Opname", "Nama Barang", "Kode Barang", "Batch #", "Auditor", "Discrepancy Qty", "Keterangan / Alasan"];
+  const exportRows = React.useMemo(() => {
+    return recentTransactions.map((tx: TStockTransaction) => {
       const discrepancy = tx.qty;
       const desc = tx.description || "";
       return [
         new Date(tx.created_at || "").toLocaleString("id-ID"),
-        tx.reference_no,
-        tx.batch?.product?.name || "",
-        tx.batch?.product?.code || "",
-        tx.batch?.batch_number || "",
+        tx.reference_no || "-",
+        tx.batch?.product?.name || "-",
+        tx.batch?.product?.code || "-",
+        tx.batch?.batch_number || "-",
         tx.user?.name || "System",
         discrepancy === 0 ? "0 (Match)" : discrepancy > 0 ? `+${discrepancy}` : discrepancy,
         desc
       ];
     });
+  }, [recentTransactions]);
 
-    downloadExcelCSV("Laporan_Stock_Opname.csv", headers, rows);
-  };
 
   const selectedBatch = batches.find((b: TInventoryBatch) => b.id === batchId);
 
@@ -300,14 +298,14 @@ export const StockOpname = () => {
               <History className="h-5 w-5 text-indigo-500" />
               Histori Audit & Adjustment Stock Opname
             </h3>
-            <button
-              onClick={downloadCSV}
-              disabled={recentTransactions.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
-            >
-              <Download className="h-3.5 w-3.5" />
-              Excel / CSV
-            </button>
+            <ExportButton
+              filename="Laporan_Stock_Opname"
+              title="Laporan Histori Audit & Stock Opname"
+              subtitle="Penyesuaian Fisik & Discrepancy Stok Gudang"
+              headers={exportHeaders}
+              rows={exportRows}
+            />
+
           </div>
 
           {isTxLoading ? (

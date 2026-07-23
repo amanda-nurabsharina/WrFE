@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { imsService, TProduct } from "../../api/ims.service";
 import { Plus, Trash2, Search, Package2, Pencil, ChevronDown, ChevronUp, AlertTriangle, RefreshCw, Info, Barcode } from "lucide-react";
 import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
-import { useToast } from "../../components/ui";
+import { useToast, ExportButton } from "../../components/ui";
+
 import { showClearErrorToast } from "../../utils";
 import { usePermission } from "../../hooks/usePermission";
 // Subcomponent to fetch and render batches for FIFO/FEFO
@@ -323,6 +324,23 @@ export const Products = () => {
     }).format(val);
   };
 
+  const productExportHeaders = ["Kode Barang", "Nama Barang", "Kategori Reg", "Sub Kategori", "Satuan Dasar", "Kemasan", "Stok", "Stok Minimum", "Harga Beli", "Harga Distributor"];
+  const productExportRows = React.useMemo(() => {
+    return products.map((prod: TProduct) => [
+      prod.code || "-",
+      prod.name || "-",
+      prod.reg_category || "-",
+      prod.sub_category || "-",
+      prod.unit || "-",
+      `1 ${prod.packaging_unit?.name || "Kemasan"} = ${prod.conversion_ratio || 1} ${prod.unit}`,
+      prod.stock || 0,
+      prod.minimum_stock || 0,
+      prod.purchase_price || 0,
+      prod.price_distributor || 0
+    ]);
+  }, [products]);
+
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -335,19 +353,30 @@ export const Products = () => {
             {t("products.subtitle")}
           </p>
         </div>
-        {hasPermission("products", "create") && (
-          <button
-            onClick={() => {
-              resetForm();
-              setIsOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
-          >
-            <Plus className="h-4 w-4" />
-            {t("products.addBtn")}
-          </button>
-        )}
+        <div className="flex items-center gap-3 self-start sm:self-center">
+          <ExportButton
+            filename="Katalog_Dan_Stok_Barang"
+            title="Katalog Dan Inventaris Stok Barang Gudang"
+            subtitle={`Total SKU Terdaftar: ${products.length} Produk`}
+            headers={productExportHeaders}
+            rows={productExportRows}
+            size="md"
+          />
+          {hasPermission("products", "create") && (
+            <button
+              onClick={() => {
+                resetForm();
+                setIsOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              {t("products.addBtn")}
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* Filter Toolbar */}
       <div className="flex gap-4 items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">

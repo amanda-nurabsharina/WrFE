@@ -2,6 +2,8 @@ import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
 import { History, Search, Filter } from "lucide-react";
+import { ExportButton } from "../../components/ui";
+
 
 type TActivityLog = {
   id: string;
@@ -47,18 +49,43 @@ export const ActivityLog = () => {
   const total: number = response?.data?.data?.total || 0;
   const totalPages = Math.ceil(total / limit);
 
+  const logExportHeaders = ["Waktu", "Pengguna", "Modul", "Aksi", "Deskripsi Activity", "IP Address"];
+  const logExportRows = React.useMemo(() => {
+    return logs.map((log: TActivityLog) => [
+      log.created_at ? new Date(log.created_at).toLocaleString("id-ID") : "-",
+      log.user?.name || log.user_id || "System",
+      log.module || "-",
+      log.action || "-",
+      log.description || "-",
+      log.ip_address || "-"
+    ]);
+  }, [logs]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
-          <History className="h-8 w-8 text-indigo-500" />
-          Log Activity (Audit Trail)
-        </h2>
-        <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
-          Track all user actions across the system for compliance and accountability.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-extrabold tracking-tight text-zinc-900 dark:text-white flex items-center gap-3">
+            <History className="h-8 w-8 text-indigo-500" />
+            Log Activity (Audit Trail)
+          </h2>
+          <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">
+            Track all user actions across the system for compliance and accountability.
+          </p>
+        </div>
+        <div className="self-start sm:self-center">
+          <ExportButton
+            filename="Audit_Trail_Log_Activity"
+            title="Laporan Log Aktivitas & Audit Trail System"
+            subtitle={`Total Record: ${total} Aktivitas`}
+            headers={logExportHeaders}
+            rows={logExportRows}
+            size="md"
+          />
+        </div>
       </div>
+
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">

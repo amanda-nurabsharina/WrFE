@@ -1,9 +1,10 @@
 import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TPurchaseOrder } from "../../api/ims.service";
-import { useToast } from "../../components/ui";
+import { useToast, ExportButton } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
 import { FileSpreadsheet, Plus, Check, ChevronDown, ChevronUp, Layers, Printer, Trash } from "lucide-react";
+
 import { usePermission } from "../../hooks/usePermission";
 
 export const PurchaseOrders = () => {
@@ -249,6 +250,22 @@ export const PurchaseOrders = () => {
     }
   };
 
+  const poExportHeaders = ["No. PO", "Tanggal Order", "Supplier", "Total Items", "Total Amount", "Status"];
+  const poExportRows = React.useMemo(() => {
+    return purchaseOrders.map((po: TPurchaseOrder) => {
+      const totalAmount = po.items?.reduce((sum, item) => sum + (item.qty || 0) * (item.price || 0), 0) || 0;
+      return [
+        po.po_number || "-",
+        po.order_date ? new Date(po.order_date).toLocaleDateString("id-ID") : "-",
+        po.supplier?.name || "-",
+        po.items?.length || 0,
+        totalAmount,
+        po.status || "draft"
+      ];
+    });
+  }, [purchaseOrders]);
+
+
   return (
     <div className="space-y-6">
       {/* Title */}
@@ -261,19 +278,30 @@ export const PurchaseOrders = () => {
             Manage purchase agreements, check approvals, and match inbound receipts.
           </p>
         </div>
-        {hasPermission("purchase-orders", "create") && (
-          <button
-            onClick={() => {
-              resetForm();
-              setIsOpen(true);
-            }}
-            className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm self-start sm:self-center"
-          >
-            <Plus className="h-4 w-4" />
-            Create PO
-          </button>
-        )}
+        <div className="flex items-center gap-3 self-start sm:self-center">
+          <ExportButton
+            filename="Daftar_Purchase_Orders"
+            title="Laporan Daftar Purchase Orders (PO)"
+            subtitle={`Total PO: ${purchaseOrders.length} Dokumen`}
+            headers={poExportHeaders}
+            rows={poExportRows}
+            size="md"
+          />
+          {hasPermission("purchase-orders", "create") && (
+            <button
+              onClick={() => {
+                resetForm();
+                setIsOpen(true);
+              }}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-all text-sm"
+            >
+              <Plus className="h-4 w-4" />
+              Create PO
+            </button>
+          )}
+        </div>
       </div>
+
 
       {/* Filter Toolbar */}
       <div className="flex gap-4 items-center bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 shadow-sm">

@@ -2,8 +2,9 @@ import * as React from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService, TInventoryBatch } from "../../api/ims.service";
 import { Search, ShieldAlert, AlertTriangle, ShieldCheck, Check } from "lucide-react";
-import { useToast } from "../../components/ui";
+import { useToast, ExportButton } from "../../components/ui";
 import { showClearErrorToast } from "../../utils";
+
 import { useStore } from "../../store/store";
 
 export const ExpiredMonitoring = () => {
@@ -97,6 +98,20 @@ export const ExpiredMonitoring = () => {
     }
   };
 
+  const batchExportHeaders = ["Kode Barang", "Nama Barang", "Batch #", "Gudang", "Rak", "Stok Qty", "Tanggal Expired", "Status Resiko / B3"];
+  const batchExportRows = React.useMemo(() => {
+    return batches.map((b: TInventoryBatch) => [
+      b.product?.code || "-",
+      b.product?.name || "-",
+      b.batch_number || "-",
+      b.warehouse?.name || "-",
+      b.location?.rack || "-",
+      b.qty || 0,
+      b.expired_date ? new Date(b.expired_date).toLocaleDateString("id-ID") : "-",
+      b.status === "quarantine" ? "Karantina B3" : getExpiryStatus(b.expired_date, false).label
+    ]);
+  }, [batches]);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -109,7 +124,18 @@ export const ExpiredMonitoring = () => {
             Pantau tanggal kadaluarsa produk pertanian dan verifikasi stock karantina B3.
           </p>
         </div>
+        <div className="self-start sm:self-center">
+          <ExportButton
+            filename={`Laporan_Expired_Quarantine_${expiryFilter}`}
+            title="Laporan Monitoring Expired & Karantina B3"
+            subtitle={`Filter: ${expiryFilter === "all" ? "Semua Active Batches" : expiryFilter === "quarantine" ? "Karantina B3" : `< ${expiryFilter} Hari`}`}
+            headers={batchExportHeaders}
+            rows={batchExportRows}
+            size="md"
+          />
+        </div>
       </div>
+
 
       {/* Filter Tabs & Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-4 shadow-sm">

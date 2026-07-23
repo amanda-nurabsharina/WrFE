@@ -7,3 +7,4 @@ export * from "./ThemeToggler";
 export * from "./Toast";
 export * from "./Tooltip";
 export * from "./Typography";
+export * from "./ExportButton";

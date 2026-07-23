@@ -3,9 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { imsService } from "../../api/ims.service";
 import { barcodeService } from "../../api/barcode.service";
 import BarcodeScanner from "../../components/barcode/BarcodeScanner";
-import { useToast } from "../../components/ui";
-import { showClearErrorToast, downloadExcelCSV } from "../../utils";
-import { ArrowDownLeft, Plus, History, Info, Download, Edit, CheckCircle, UploadCloud, Barcode, ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
+import { useToast, ExportButton } from "../../components/ui";
+import { showClearErrorToast } from "../../utils";
+import { ArrowDownLeft, Plus, History, Info, Edit, CheckCircle, UploadCloud, Barcode, ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
 import BarcodePrintDialog from "../../components/barcode/BarcodePrintDialog";
 
 export const GoodsIn = () => {
@@ -297,28 +297,25 @@ export const GoodsIn = () => {
     });
   };
 
-  const downloadCSV = () => {
-    if (recentTransactions.length === 0) return;
-
-    const headers = ["Tanggal", "Invoice", "Supplier", "Nama Barang", "Kode Barang", "Batch #", "Gudang", "Rak", "Qty", "Harga Beli", "Status"];
-    const rows = recentTransactions
+  const exportHeaders = ["Tanggal", "Invoice", "Supplier", "Nama Barang", "Kode Barang", "Batch #", "Gudang", "Rak", "Qty", "Harga Beli", "Status"];
+  const exportRows = React.useMemo(() => {
+    return recentTransactions
       .filter((tx: any) => (tx.status || "completed") === activeTab)
       .map((tx: any) => [
         new Date(tx.created_at).toLocaleString("id-ID"),
-        tx.reference_no,
+        tx.reference_no || "-",
         tx.supplier?.name || "-",
         tx.batch?.product?.name || "",
         tx.batch?.product?.code || "",
         tx.batch?.batch_number || "",
         tx.batch?.warehouse?.name || "",
         tx.batch?.location?.rack || "",
-        tx.qty,
+        tx.qty || 0,
         tx.batch?.purchase_price || 0,
         tx.status || "completed"
       ]);
+  }, [recentTransactions, activeTab]);
 
-    downloadExcelCSV(`Laporan_Barang_Masuk_${activeTab === "completed" ? "Completed" : "Draft"}.csv`, headers, rows);
-  };
 
   React.useEffect(() => {
     setCurrentPage(1);
@@ -634,15 +631,14 @@ export const GoodsIn = () => {
                 </button>
               </div>
 
-              {/* Download CSV */}
-              <button
-                onClick={downloadCSV}
-                disabled={filteredTransactions.length === 0}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-zinc-700 dark:text-zinc-300 rounded-lg text-[10px] font-bold transition-all disabled:opacity-50"
-              >
-                <Download className="h-3.5 w-3.5" />
-                CSV
-              </button>
+              <ExportButton
+                filename={`Laporan_Barang_Masuk_${activeTab === "completed" ? "Completed" : "Draft"}`}
+                title="Laporan Transaksi Barang Masuk (Inward)"
+                subtitle={`Status Transaksi: ${activeTab === "completed" ? "Completed" : "Draft"}`}
+                headers={exportHeaders}
+                rows={exportRows}
+              />
+
             </div>
           </div>
 

@@ -413,9 +413,10 @@ export const AppLayout = () => {
         </header>
 
         {/* Dynamic page contents */}
-        <div className="flex-1 p-6 md:p-8 overflow-y-auto">
+        <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto w-full min-w-0 flex flex-col">
           <Outlet />
         </div>
+
       </div>
 
       {/* Modal Popup: All Alerts Center */}

@@ -6,16 +6,15 @@ import {
   TrendingUp, 
   Clock, 
   ArrowLeftRight, 
-  Download, 
   RefreshCw, 
   Layers, 
   AlertCircle,
   AlertTriangle
 } from "lucide-react";
-import { useToast } from "../../components/ui";
+import { ExportButton } from "../../components/ui";
 
 export const Reporting = () => {
-  const { toast } = useToast();
+
   
   // Tab State: "value" | "aging" | "mutation" | "distribution" | "reorder"
   const [activeTab, setActiveTab] = React.useState<"value" | "aging" | "mutation" | "distribution" | "reorder">("value");
@@ -123,48 +122,86 @@ export const Reporting = () => {
     }).format(val);
   };
 
-  // CSV Export utility
-  const handleExportCSV = (data: any[], filename: string) => {
-    if (!data || data.length === 0) {
-      toast({
-        title: "Ekspor Gagal",
-        description: "Tidak ada data untuk diekspor",
-        variant: "destructive"
-      });
-      return;
-    }
+  // Memoized Export Data Sets for Reporting
+  const valueExportHeaders = ["Kode Barang", "Nama Barang", "Kategori", "Batch #", "Gudang", "Rak", "Stok Qty", "Harga Beli", "Total Nilai Persediaan"];
+  const valueExportRows = React.useMemo(() => {
+    if (!valueReport?.items) return [];
+    return valueReport.items.map((item: any) => [
+      item.product_code || item.code || "-",
+      item.product_name || item.name || "-",
+      item.category_name || item.category || "-",
+      item.batch_number || "-",
+      item.warehouse_name || "-",
+      item.rack || "-",
+      item.qty || 0,
+      item.purchase_price || 0,
+      item.total_value || ((item.qty || 0) * (item.purchase_price || 0))
+    ]);
+  }, [valueReport]);
 
-    // Clean details for CSV
-    const csvRows = [];
-    const headers = Object.keys(data[0]);
-    csvRows.push(headers.join(","));
+  const agingExportHeaders = ["Kode Barang", "Nama Barang", "Batch #", "Tanggal Masuk", "Hari di Gudang", "Stok Qty", "Expired Date", "Status Risk"];
+  const agingExportRows = React.useMemo(() => {
+    if (!agingReport?.items) return [];
+    return agingReport.items.map((item: any) => [
+      item.product_code || "-",
+      item.product_name || "-",
+      item.batch_number || "-",
+      item.received_at ? new Date(item.received_at).toLocaleDateString("id-ID") : "-",
+      item.days_in_warehouse || 0,
+      item.qty || 0,
+      item.expired_date ? new Date(item.expired_date).toLocaleDateString("id-ID") : "-",
+      item.risk_level || "-"
+    ]);
+  }, [agingReport]);
 
-    for (const row of data) {
-      const values = headers.map(header => {
-        const val = row[header];
-        const stringVal = val === null || val === undefined ? "" : String(val);
-        // Escape quotes
-        const escaped = stringVal.replace(/"/g, '\\"');
-        return `"${escaped}"`;
-      });
-      csvRows.push(values.join(","));
-    }
+  const mutationExportHeaders = ["Tanggal", "No. Ref", "Tipe Transaksi", "Kode Barang", "Nama Barang", "Batch #", "Gudang", "Qty", "User / Operator"];
+  const mutationExportRows = React.useMemo(() => {
+    if (!mutationReport || !Array.isArray(mutationReport)) return [];
+    return mutationReport.map((item: any) => [
+      item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : "-",
+      item.reference_no || "-",
+      item.type || "-",
+      item.batch?.product?.code || item.product_code || "-",
+      item.batch?.product?.name || item.product_name || "-",
+      item.batch?.batch_number || item.batch_number || "-",
+      item.batch?.warehouse?.name || item.warehouse_name || "-",
+      item.qty || 0,
+      item.user?.name || item.user_name || "-"
+    ]);
+  }, [mutationReport]);
 
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", filename);
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const distributionExportHeaders = ["Tanggal", "Surat Jalan / Invoice", "Penerima / Tujuan", "Kode Barang", "Nama Barang", "Batch #", "Qty Keluar", "Keterangan"];
+  const distributionExportRows = React.useMemo(() => {
+    if (!distributionReport || !Array.isArray(distributionReport)) return [];
+    return distributionReport.map((item: any) => [
+      item.created_at ? new Date(item.created_at).toLocaleString("id-ID") : "-",
+      item.reference_no || "-",
+      item.destination || "-",
+      item.batch?.product?.code || "-",
+      item.batch?.product?.name || "-",
+      item.batch?.batch_number || "-",
+      item.qty || 0,
+      item.description || "-"
+    ]);
+  }, [distributionReport]);
 
-    toast({
-      title: "Sukses Ekspor",
-      description: `Laporan berhasil diekspor sebagai ${filename}`,
-    });
-  };
+  const reorderExportHeaders = ["Kode Barang", "Nama Barang", "Kategori", "Stok Saat Ini", "Safety Stock (Min)", "Konsumsi Harian (ADU)", "Reorder Point (ROP)", "Status", "Saran Order Qty", "Supplier Rekomendasi"];
+  const reorderExportRows = React.useMemo(() => {
+    if (!reorderReport || !Array.isArray(reorderReport)) return [];
+    return reorderReport.map((item: any) => [
+      item.code || "-",
+      item.name || "-",
+      item.category || "-",
+      item.current_stock || 0,
+      item.minimum_stock || 0,
+      item.adu ? Number(item.adu.toFixed(2)) : 0,
+      item.rop || 0,
+      item.status || "-",
+      item.suggested_qty || 0,
+      item.last_supplier_name || "-"
+    ]);
+  }, [reorderReport]);
+
 
   return (
     <div className="space-y-6">
@@ -288,13 +325,14 @@ export const Reporting = () => {
               Clear
             </button>
 
-            <button
-              onClick={() => handleExportCSV(valueReport.items, "laporan_nilai_persediaan.csv")}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor CSV
-            </button>
+            <ExportButton
+              filename="Laporan_Nilai_Persediaan"
+              title="Laporan Nilai Persediaan Stok Gudang"
+              subtitle="Rincian Qty, Harga Beli & Total Valuasi Persediaan"
+              headers={valueExportHeaders}
+              rows={valueExportRows}
+            />
+
           </div>
 
           {/* Summaries Grid */}
@@ -450,13 +488,14 @@ export const Reporting = () => {
               Clear
             </button>
 
-            <button
-              onClick={() => handleExportCSV(agingReport.items, "laporan_usia_stok.csv")}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor CSV
-            </button>
+            <ExportButton
+              filename="Laporan_Usia_Stok"
+              title="Laporan Usia Stok & Analisis Slow Moving"
+              subtitle="Durasi Penyimpanan di Gudang & Resiko Kadaluarsa"
+              headers={agingExportHeaders}
+              rows={agingExportRows}
+            />
+
           </div>
 
           {/* Aging Buckets Summaries */}
@@ -688,13 +727,14 @@ export const Reporting = () => {
               Clear
             </button>
 
-            <button
-              onClick={() => handleExportCSV(mutationReport, "laporan_mutasi_stok.csv")}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor CSV
-            </button>
+            <ExportButton
+              filename="Laporan_Mutasi_Stok"
+              title="Laporan Mutasi & Pergerakan Stok Gudang"
+              subtitle="Rekap Transaksi Masuk, Keluar, dan Penyesuaian Audit"
+              headers={mutationExportHeaders}
+              rows={mutationExportRows}
+            />
+
           </div>
 
           {/* Table Card */}
@@ -830,13 +870,14 @@ export const Reporting = () => {
               Clear
             </button>
 
-            <button
-              onClick={() => handleExportCSV(distributionReport, "laporan_penyaluran_barang.csv")}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-colors"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor CSV
-            </button>
+            <ExportButton
+              filename="Laporan_Penyaluran_Barang"
+              title="Laporan Penyaluran & Distribusi Barang"
+              subtitle="Dokumen Pelaporan Resmi Distribusi Pestisida/B3 & Pupuk"
+              headers={distributionExportHeaders}
+              rows={distributionExportRows}
+            />
+
           </div>
 
           {/* Table Card */}
@@ -962,27 +1003,14 @@ export const Reporting = () => {
               </div>
             </div>
 
-            <button
-              onClick={() => {
-                const formatted = reorderReport.map((item: any) => ({
-                  "Kode Barang": item.product_code,
-                  "Nama Barang": item.product_name,
-                  "Kategori": item.category,
-                  "Stok Saat Ini": item.current_stock,
-                  "Safety Stock (Min)": item.minimum_stock,
-                  "Konsumsi Harian (ADU)": item.adu.toFixed(2),
-                  "Reorder Point (ROP)": item.rop,
-                  "Status": item.status,
-                  "Saran Order Qty": item.suggested_qty,
-                  "Supplier Rekomendasi": item.last_supplier_name || "-"
-                }));
-                handleExportCSV(formatted, `Laporan_Reorder_Point_LeadTime_${leadTime}d.csv`);
-              }}
-              className="bg-indigo-650 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-700 text-white font-extrabold text-xs px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 shadow-md shadow-indigo-600/10"
-            >
-              <Download className="h-4 w-4" />
-              Ekspor CSV
-            </button>
+            <ExportButton
+              filename={`Laporan_Reorder_Point_LeadTime_${leadTime}d`}
+              title="Laporan Reorder Point & Safety Stock"
+              subtitle={`Simulasi Lead Time Pemasok: ${leadTime} Hari`}
+              headers={reorderExportHeaders}
+              rows={reorderExportRows}
+            />
+
           </div>
 
           {/* Table Card */}
